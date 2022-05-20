@@ -59,11 +59,14 @@ The DSI Studio Cloud pipeline includes preprocessing (eddy correction and align 
 
 Click on `Run workflow` to start. 
 
-4. **Download Results**: Once completed, the intermediate results (e.g. SRC files, FIB files), tract files, and tract metrics can be downloaded. SRC, FIB, TT files  can be [inspected in DSI Studio](https://dsi-studio.labsolver.org/doc/gui_t3_whole_brain.html).
+4. **Download Results**: 
 
-<img src="https://user-images.githubusercontent.com/275569/167920862-55b12b8d-9f22-4ca8-b1a5-969b33443a9f.png" width=500>
+Once completed, the FIB files, tract files, and tract metrics can be downloaded from the Release on the right of the repository.
 
-## Open Neuro DWI Data 
+![image](https://user-images.githubusercontent.com/275569/169601907-eb2c040f-78f4-4f38-931a-85c320b99b08.png)
+
+
+## OpenNeuro DWI Data List 
 
 |	DS NUMBER	|	DWI COUNT	|		NAME		|
 |----------------------|--------------------------|-------------------------------|
