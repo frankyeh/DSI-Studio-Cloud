@@ -19,7 +19,6 @@ DSI Studio Cloud makes uses of the GitHub-hosted runner, a virtual machine hoste
 ## Limitations
 
 - **Not more than 256 scans data**: There is a maximum of 256 jobs per workflow run. DSI Studio will still generate SRC and FIB files for downloading, but fiber tracking cannot be executed due to the this limit.
-- **90-day data retention**: GitHub will retain workflor data only for 90 days before they are automatically deleted.
 
 ## Examples Dataset
 
