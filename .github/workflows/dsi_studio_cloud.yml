@@ -46,8 +46,8 @@ jobs:
       - name: Download ${{ github.event.inputs.id }}
         id: openneuro
         run: |
-          aws s3 sync --no-sign-request --exclude "*" --include "*dwi.*" s3://openneuro.org/${{ github.event.inputs.id }} ${{ github.event.inputs.id }} 
-          aws s3 sync --no-sign-request --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi.*" s3://openneuro.org/${{ github.event.inputs.id }} ${{ github.event.inputs.id }} 
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
           content=`cat dataset_description.json`
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
