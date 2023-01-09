@@ -56,7 +56,7 @@ jobs:
       - name: Create SRC Files
         id: src
         run: |
-          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_1804.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
+          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu1804.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
           ./dsi-studio/dsi_studio --action=src --source=${{ github.event.inputs.id }}
           cat ./${{ github.event.inputs.id }}/log.txt
           mv ./**/*src.gz .
@@ -90,7 +90,7 @@ jobs:
           name: ${{ github.event.inputs.id }}_raw_src
       - name: Quality Check
         run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q *.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=qc --source=.    
           mv qc.txt qc1.txt
       - name: Create Release
@@ -151,12 +151,12 @@ jobs:
           export FSLTCLSH="/usr/bin/tclsh"
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q *.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=${{ matrix.files }} --align_acpc=${{ steps.acpc_command.outputs.value }}              
       - name: align ACPC
         if: github.event.inputs.eddy == 'false' && github.event.inputs.acpc == 'true'
         run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q *.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --save_src=${{ matrix.files }} --align_acpc=1
       - name: Save SRC Files
         if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
@@ -181,7 +181,7 @@ jobs:
           name: ${{ github.event.inputs.id }}_raw_src
       - name: Quality Check
         run: |        
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q *.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=qc --source=.
           mv qc.txt qc2.txt
       - name: Create Release
@@ -207,7 +207,7 @@ jobs:
       - name: Create FIB Files
         id: fib
         run: |        
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q *.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=*.src.gz --mask=1 --check_btable=0 --align_acpc=0
           zip ${{ github.event.inputs.id }}_fib.zip *.fib.gz
           FIB_LIST=$(ls *.fib.gz | jq -R -s -c 'split("\n")[:-1]')
@@ -240,7 +240,7 @@ jobs:
           fileName: "${{ github.event.inputs.id }}_fib.zip"
       - name: Analyzing Regions
         run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q \*.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q \*.zip
           ./dsi-studio/dsi_studio --action=ana --source=${{ matrix.files }} --atlas=${{ github.event.inputs.atlas }}
       - name: Save Result
         uses: actions/upload-artifact@v2.2.4
@@ -268,7 +268,7 @@ jobs:
           fileName: "${{ github.event.inputs.id }}_fib.zip"
       - name: AutoTrack
         run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q \*.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q \*.zip
           ./dsi-studio/dsi_studio --action=atk --source=${{ matrix.files }} --track_id=${{ github.event.inputs.tract }}
           mv ./**/*.tt.gz .
           mv ./**/*.stat.txt .
@@ -300,7 +300,7 @@ jobs:
           fileName: "${{ github.event.inputs.id }}_fib.zip"
       - name: Tracking
         run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2021.12.03/dsi_studio_ubuntu_2004.zip" && unzip -q \*.zip
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2004.zip" && unzip -q \*.zip
           ./dsi-studio/dsi_studio --action=trk --source=${{ matrix.files }} --fiber_count=1000000 --output=no_file --connectivity=${{ github.event.inputs.atlas }}          
       - name: Save Result
         uses: actions/upload-artifact@v2.2.4
