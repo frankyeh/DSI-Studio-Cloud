@@ -81,7 +81,7 @@ jobs:
     name: Quality Check 1
     if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
     needs: download_data
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Prepare Raw SRC
         uses: actions/download-artifact@v3.0.0
@@ -109,7 +109,7 @@ jobs:
     strategy:
       matrix:
         files: ${{ fromjson(needs.download_data.outputs.files) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Prepare Raw SRC
         if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
@@ -167,7 +167,7 @@ jobs:
   quality_check2:
     name: Quality Check 2
     needs: preprocessing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Prepare SRC Files
         uses: actions/download-artifact@v3.0.0
@@ -194,7 +194,7 @@ jobs:
   reconstruction:
     name: Reconstruction
     needs: preprocessing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       files: ${{ steps.fib.outputs.files }}
       dataset_description: ${{ needs.preprocessing.outputs.dataset_description }}
@@ -229,7 +229,7 @@ jobs:
         files: ${{ fromjson(needs.reconstruction.outputs.files) }}
     outputs:
       dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}      
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Prepare FIB file
         uses: robinraju/release-downloader@v1.3
@@ -257,7 +257,7 @@ jobs:
         files: ${{ fromjson(needs.reconstruction.outputs.files) }}
     outputs:
       dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}            
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Prepare FIB file
         uses: robinraju/release-downloader@v1.3
@@ -289,7 +289,7 @@ jobs:
         files: ${{ fromjson(needs.reconstruction.outputs.files) }}
     outputs:
       dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}            
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Prepare FIB file
         uses: robinraju/release-downloader@v1.3
@@ -313,7 +313,7 @@ jobs:
     name: Save Region Analysis Results
     if: github.event.inputs.region_analysis == 'true'
     needs: region_analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Collect results
         uses: actions/download-artifact@v3.0.0
@@ -333,7 +333,7 @@ jobs:
     name: Save AutoTrack Results
     if: github.event.inputs.autotrack == 'true'
     needs: automatic_fiber_tracking
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Collect results
         uses: actions/download-artifact@v3.0.0
@@ -353,7 +353,7 @@ jobs:
     name: Save Connectivity Matrix Results
     if: github.event.inputs.connectivity_matrix == 'true'
     needs: connectivity_matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Collect results
         uses: actions/download-artifact@v3.0.0
