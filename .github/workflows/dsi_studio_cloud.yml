@@ -218,6 +218,7 @@ jobs:
           artifacts: ${{ github.event.inputs.id }}_fib.zip
           name: "${{ fromjson(needs.preprocessing.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}
+          
   database_construction:
     name: Database Construction
     continue-on-error: true
@@ -304,37 +305,7 @@ jobs:
           path: |
             ./*.tt.gz 
             ./*.stat.txt 
-            
-  connectivity_matrix:
-    name: Connectivity Matrix
-    continue-on-error: true
-    if: github.event.inputs.connectivity_matrix == 'true'
-    needs: reconstruction
-    strategy:
-      matrix:
-        files: ${{ fromjson(needs.reconstruction.outputs.files) }}
-    outputs:
-      dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}            
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Prepare FIB file
-        uses: robinraju/release-downloader@v1.3
-        with:
-          repository: "${{ github.repository }}"
-          tag: "${{ github.event.inputs.id }}"
-          fileName: "${{ github.event.inputs.id }}_fib.zip"
-      - name: Tracking
-        run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q \*.zip
-          ./dsi-studio/dsi_studio --action=trk --source=${{ matrix.files }} --fiber_count=1000000 --output=no_file --connectivity=${{ github.event.inputs.atlas }}          
-      - name: Save Result
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: ${{ github.event.inputs.id }}_connectivity_matrix
-          path: |
-            ./*.mat
-            ./*.txt
-    
+              
   region_analysis_output:
     name: Save Region Analysis Results
     if: github.event.inputs.region_analysis == 'true'
