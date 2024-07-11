@@ -188,7 +188,7 @@ jobs:
       - name: Prepare FIB Files
         uses: actions/download-artifact@v3.0.0
         with:
-          name: ${{ github.event.inputs.id }}_qsdr_fib
+          name: ${{ github.event.inputs.id }}_QSDR_fib
       - name: Database Construction
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
