@@ -17,7 +17,7 @@ on:
       
 jobs:    
   download_data:
-    name: "--action=src --source=./nifti"
+    name: "Create SRC: --action=src --source=./nifti"
     runs-on: ubuntu-20.04
     outputs:
       files: ${{ steps.src.outputs.files }}
@@ -45,20 +45,13 @@ jobs:
         if: failure() 
         run: cat ./${{ github.event.inputs.id }}/log.txt      
       - name: Save SRC files
-        if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: ${{ github.event.inputs.id }}_raw_src
-          path: ./*src.gz
-      - name: Save SRC files
-        if: github.event.inputs.eddy == 'false' && github.event.inputs.acpc == 'false'
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_src
           path: ./*.src.gz          
           
   quality_check1:
-    name: "--action=qc --source=./src"
+    name: "Quality Control --action=qc --source=./src"
     if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
     needs: download_data
     runs-on: ubuntu-20.04
@@ -66,7 +59,7 @@ jobs:
       - name: Prepare Raw SRC
         uses: actions/download-artifact@v3.0.0
         with:
-          name: ${{ github.event.inputs.id }}_raw_src
+          name: ${{ github.event.inputs.id }}_src
       - name: Quality Check
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
@@ -83,7 +76,7 @@ jobs:
           tag: ${{ github.event.inputs.id }}  
           
   reconstruction:
-    name: SRC to FIB
+    name: "SRC to FIB: --action=rec --source="
     continue-on-error: true
     needs: download_data
     outputs:
@@ -97,12 +90,6 @@ jobs:
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
       - name: Prepare Raw SRC
-        if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
-        uses: actions/download-artifact@v3.0.0
-        with:
-          name: ${{ github.event.inputs.id }}_raw_src
-      - name: Download Raw SRC (Backup)
-        if: failure() && (github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true')
         uses: actions/download-artifact@v3.0.0
         with:
           name: ${{ github.event.inputs.id }}_src
@@ -144,7 +131,7 @@ jobs:
         if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: ${{ github.event.inputs.id }}_src
+          name: ${{ github.event.inputs.id }}_corrected_src
           path: ${{ matrix.files }}
       - name: GQI Reconstruction
         run: |
@@ -177,7 +164,7 @@ jobs:
         if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
         uses: GeekyEggo/delete-artifact@v1.0.0
         with:
-          name: ${{ github.event.inputs.id }}_raw_src
+          name: ${{ github.event.inputs.id }}_corrected_src
       - name: Quality Check
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
@@ -194,7 +181,7 @@ jobs:
           tag: ${{ github.event.inputs.id }}
           
   database_construction:
-    name: "--action=atl"
+    name: "Create Database: --action=atl"
     needs: reconstruction
     runs-on: ubuntu-20.04
     steps:
