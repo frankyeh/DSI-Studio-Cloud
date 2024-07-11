@@ -14,22 +14,6 @@ on:
         type: boolean
         default: 'false'
         description: 'Preprocessing: Align AC-PC'
-      region_analysis:
-        type: boolean
-        default: 'true'
-        description: 'Pipeline: Region Analysis'
-      autotrack:
-        type: boolean
-        default: 'true'
-        description: 'Pipeline: Automatic Fiber Tracking'
-      atlas:
-        description: 'Options: Atlases'
-        default: 'HCP-MMP,FreeSurferDKT_Cortical'
-        required: false
-      tract:
-        description: 'Options: Tracts of Interest'
-        default: 'ArcuateFasciculus,Forceps'
-        required: false
       
 jobs:    
   download_data:
@@ -109,6 +93,9 @@ jobs:
         files: ${{ fromjson(needs.download_data.outputs.files) }}
     runs-on: ubuntu-20.04
     steps:
+      - name: DSI Studio
+        run: |
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
       - name: Prepare Raw SRC
         if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
         uses: actions/download-artifact@v3.0.0
@@ -148,12 +135,10 @@ jobs:
           export FSLTCLSH="/usr/bin/tclsh"
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=${{ matrix.files }} --align_acpc=${{ steps.acpc_command.outputs.value }}              
       - name: align ACPC
         if: github.event.inputs.eddy == 'false' && github.event.inputs.acpc == 'true'
         run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --save_src=${{ matrix.files }} --align_acpc=1
       - name: Save SRC Files
         if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
@@ -178,7 +163,6 @@ jobs:
         with:
           name: ${{ github.event.inputs.id }}_GQI_fib
           path: ./*.fib.gz          
-
 
   quality_check2:
     name: SRC Quality Check 2
