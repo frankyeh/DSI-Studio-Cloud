@@ -32,7 +32,7 @@ on:
         required: false
       tract:
         description: 'Options: Tracts of Interest'
-        default: 'Arcuate_Fasciculus_L,Forceps_Major'
+        default: 'ArcuateFasciculus,Forceps'
         required: false
       
 jobs:    
