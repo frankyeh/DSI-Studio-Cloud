@@ -8,20 +8,16 @@ on:
         required: true
       eddy:
         type: boolean
-        default: 'true'
+        default: 'false'
         description: 'Preprocessing: TOPUP/EDDY'
       acpc:
         type: boolean
-        default: 'true'
+        default: 'false'
         description: 'Preprocessing: Align AC-PC'
       region_analysis:
         type: boolean
         default: 'true'
         description: 'Pipeline: Region Analysis'
-      connectivity_matrix:
-        type: boolean
-        default: 'true'
-        description: 'Pipeline: Connectivity Matrix'
       autotrack:
         type: boolean
         default: 'true'
@@ -43,7 +39,7 @@ jobs:
       files: ${{ steps.src.outputs.files }}
       dataset_description: ${{ steps.openneuro.outputs.dataset_description }}
     steps:
-      - name: Download ${{ github.event.inputs.id }}
+      - name: ${{ github.event.inputs.id }} NIFTI to SRC 
         id: openneuro
         run: |
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi.*" s3://openneuro.org/${{ github.event.inputs.id }} ${{ github.event.inputs.id }} 
@@ -78,7 +74,7 @@ jobs:
           path: ./*.src.gz          
           
   quality_check1:
-    name: Quality Check 1
+    name: SRC Quality Check
     if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
     needs: download_data
     runs-on: ubuntu-20.04
@@ -90,8 +86,10 @@ jobs:
       - name: Quality Check
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=qc --source=.    
-          mv qc.txt qc1.txt
+          mkdir src
+          mv *.src.gz ./src
+          ./dsi-studio/dsi_studio --action=qc --source=./src    
+          mv qc_src.txt qc1.txt
       - name: Create Release
         uses: ncipollo/release-action@v1.10.0
         with:
@@ -165,7 +163,7 @@ jobs:
           path: ${{ matrix.files }}
 
   quality_check2:
-    name: Quality Check 2
+    name: SRC Quality Check 2
     needs: preprocessing
     runs-on: ubuntu-20.04
     steps:
@@ -181,8 +179,10 @@ jobs:
       - name: Quality Check
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=qc --source=.
-          mv qc.txt qc2.txt
+          mkdir src
+          mv *.src.gz ./src
+          ./dsi-studio/dsi_studio --action=qc --source=./src
+          mv qc_src.txt qc2.txt
       - name: Create Release
         uses: ncipollo/release-action@v1.10.0
         with:
@@ -192,7 +192,7 @@ jobs:
           tag: ${{ github.event.inputs.id }}
           
   reconstruction:
-    name: Reconstruction
+    name: SRC to FIB (GQI)
     needs: preprocessing
     runs-on: ubuntu-20.04
     outputs:
@@ -218,7 +218,33 @@ jobs:
           artifacts: ${{ github.event.inputs.id }}_fib.zip
           name: "${{ fromjson(needs.preprocessing.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}
-          
+  database_construction:
+    name: Database Construction
+    continue-on-error: true
+    if: github.event.inputs.region_analysis == 'true'
+    needs: reconstruction
+    strategy:
+      matrix:
+        files: ${{ fromjson(needs.reconstruction.outputs.files) }}
+    outputs:
+      dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}      
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Prepare FIB file
+        uses: robinraju/release-downloader@v1.3
+        with:
+          repository: "${{ github.repository }}"
+          tag: "${{ github.event.inputs.id }}"
+          fileName: "${{ github.event.inputs.id }}_fib.zip"
+      - name: Analyzing Regions
+        run: |
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q \*.zip
+          ./dsi-studio/dsi_studio --action=atl --source=${{ matrix.files }} --cmd=db
+      - name: Save Result
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: ${{ github.event.inputs.id }}_database
+          path: ./*.db.fib.gz          
   region_analysis:
     name: Region Analysis
     continue-on-error: true
@@ -349,24 +375,4 @@ jobs:
           name: "${{ fromjson(needs.automatic_fiber_tracking.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}
 
-  connectivity_matrix_output:
-    name: Save Connectivity Matrix Results
-    if: github.event.inputs.connectivity_matrix == 'true'
-    needs: connectivity_matrix
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Collect results
-        uses: actions/download-artifact@v3.0.0
-        with:
-          name: ${{ github.event.inputs.id }}_connectivity_matrix
-      - name: Zip results
-        run: zip ${{ github.event.inputs.id }}_connectivity_matrix.zip *.mat *.txt
-      - name: Create Release
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: ${{ github.event.inputs.id }}_connectivity_matrix.zip
-          name: "${{ fromjson(needs.connectivity_matrix.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}
-          
-          
+  
