@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       files: ${{ steps.src.outputs.files }}
-      dataset_description: ${{ steps.openneuro.outputs.dataset_description }}
+      dataset_description: ${{ steps.download_data.outputs.dataset_description }}
     steps:
       - name: Download OpenNeuro
         id: download_data
