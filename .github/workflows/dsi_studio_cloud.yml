@@ -101,6 +101,14 @@ jobs:
         with:
           name: ${{ github.event.inputs.id }}_corrected_src
           path: ${{ matrix.files }}
+      - name: Create Release
+        if: github.event.inputs.eddy == 'true'
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: ./*.src.gz
+          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}              
       - name: GQI Reconstruction
         run: |
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}    
