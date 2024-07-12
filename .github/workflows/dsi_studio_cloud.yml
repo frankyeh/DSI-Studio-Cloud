@@ -17,13 +17,13 @@ on:
       
 jobs:    
   download_data:
-    name: "Create SRC: --action=src --source=./nifti"
+    name: "NIFTI to SRC"
     runs-on: ubuntu-20.04
     outputs:
       files: ${{ steps.src.outputs.files }}
       dataset_description: ${{ steps.openneuro.outputs.dataset_description }}
     steps:
-      - name: ${{ github.event.inputs.id }} NIFTI to SRC 
+      - name: Download OpenNeuro
         id: download_data
         run: |
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi.*" s3://openneuro.org/${{ github.event.inputs.id }} nifti 
@@ -49,34 +49,9 @@ jobs:
         with:
           name: ${{ github.event.inputs.id }}_src
           path: ./*.src.gz          
-          
-  quality_check1:
-    name: "Quality Control --action=qc --source=./src"
-    if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
-    needs: download_data
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Prepare Raw SRC
-        uses: actions/download-artifact@v3.0.0
-        with:
-          name: ${{ github.event.inputs.id }}_src
-      - name: Quality Check
-        run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          mkdir src
-          mv *.src.gz ./src
-          ./dsi-studio/dsi_studio --action=qc --source=./src    
-          mv qc_src.txt qc1.txt
-      - name: Create Release
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: qc1.txt
-          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}  
-          
+                
   reconstruction:
-    name: "SRC to FIB: --action=rec --source="
+    name: "SRC to FIB"
     continue-on-error: true
     needs: download_data
     outputs:
@@ -89,17 +64,10 @@ jobs:
       - name: DSI Studio
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-      - name: Prepare Raw SRC
+      - name: SRC Files
         uses: actions/download-artifact@v3.0.0
         with:
-          name: ${{ github.event.inputs.id }}_src
-      - name: Setup AC-PC command
-        uses: haya14busa/action-cond@v1.0.0
-        id: acpc_command
-        with:
-          cond: ${{ github.event.inputs.acpc == 'true' }}
-          if_true: '1'
-          if_false: '0'      
+          name: ${{ github.event.inputs.id }}_src     
       - name: Cache FSL environment
         if: github.event.inputs.eddy == 'true'
         id: cache-fsl
@@ -122,13 +90,13 @@ jobs:
           export FSLTCLSH="/usr/bin/tclsh"
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=${{ matrix.files }} --align_acpc=${{ steps.acpc_command.outputs.value }}              
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=${{ matrix.files }} --align_acpc=${{ github.event.inputs.acpc }}              
       - name: align ACPC
         if: github.event.inputs.eddy == 'false' && github.event.inputs.acpc == 'true'
         run: |
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --save_src=${{ matrix.files }} --align_acpc=1
       - name: Save SRC Files
-        if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
+        if: github.event.inputs.eddy == 'true'
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_corrected_src
@@ -152,36 +120,48 @@ jobs:
           path: ./*.fib.gz          
 
   quality_check2:
-    name: SRC Quality Check 2
+    name: SRC Quality Check
     needs: reconstruction
     runs-on: ubuntu-20.04
     steps:
-      - name: Prepare SRC Files
+      - name: SRC Files
         uses: actions/download-artifact@v3.0.0
         with:
           name: ${{ github.event.inputs.id }}_src
-      - name: Delete Raw SRC Files
-        if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
-        uses: GeekyEggo/delete-artifact@v1.0.0
-        with:
-          name: ${{ github.event.inputs.id }}_corrected_src
       - name: Quality Check
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           mkdir src
           mv *.src.gz ./src
           ./dsi-studio/dsi_studio --action=qc --source=./src
-          mv qc_src.txt qc2.txt
       - name: Create Release
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: qc2.txt
+          artifacts: qc.txt
           name: "${{ fromjson(needs.preprocessing.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}
+      - name: Corrected SRC Files
+        if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
+        uses: GeekyEggo/delete-artifact@v1.0.0
+        with:
+          name: ${{ github.event.inputs.id }}_corrected_src
+      - name: Quality Check
+        run: |        
+          mkdir corrected_src
+          mv *.src.gz ./corrected_src
+          ./dsi-studio/dsi_studio --action=qc --source=./corrected_src
+          mv qc.txt corrected_qc.txt
+      - name: Create Release
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: corrected_qc.txt
+          name: "${{ fromjson(needs.preprocessing.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}          
           
   database_construction:
-    name: "Create Database: --action=atl"
+    name: "Create Database"
     needs: reconstruction
     runs-on: ubuntu-20.04
     steps:
@@ -191,9 +171,13 @@ jobs:
           name: ${{ github.event.inputs.id }}_QSDR_fib
       - name: Database Construction
         run: |        
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ github.event.inputs.id }} .
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --output=${{ github.event.inputs.id }}.db.fib.gz
-          mv qc_src.txt qc2.txt
+          if [ -f participants.tsv ]; then
+            ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --demo=participants.tsv --output=${{ github.event.inputs.id }}.db.fib.gz
+          else
+            ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --output=${{ github.event.inputs.id }}.db.fib.gz
+          fi
       - name: Create Release
         uses: ncipollo/release-action@v1.10.0
         with:
@@ -202,5 +186,3 @@ jobs:
           name: "${{ github.event.inputs.id }}.db.fib.gz"
           tag: ${{ github.event.inputs.id }}          
      
-
-  
