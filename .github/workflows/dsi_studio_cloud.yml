@@ -206,8 +206,8 @@ jobs:
     steps:
       - name: Check If Done
         run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.db.fib.gz 2>/dev/null
-          if [ ! -f "${{ matrix.files }}.db.fib.gz" ]; then
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ github.event.inputs.id }}.db.fib.gz 2>/dev/null
+          if [ ! -f "${{ github.event.inputs.id }}.db.fib.gz" ]; then
             echo "file_exists=false" >> $GITHUB_ENV
           else
             echo "file_exists=true" >> $GITHUB_ENV
