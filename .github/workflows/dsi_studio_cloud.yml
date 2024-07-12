@@ -68,7 +68,6 @@ jobs:
     strategy:
       matrix:
         files: ${{ fromjson(needs.download_data.outputs.files) }}
-      max-parallel: 8
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
@@ -147,14 +146,12 @@ jobs:
           
   reconstruction:
     name: "SRC to FIB"
-    continue-on-error: true
     needs: topup_eddy
     outputs:
       dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
     strategy:
       matrix:
         files: ${{ fromjson(needs.topup_eddy.outputs.files) }}
-      max-parallel: 8
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
