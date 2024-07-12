@@ -59,6 +59,7 @@ jobs:
     strategy:
       matrix:
         files: ${{ fromjson(needs.download_data.outputs.files) }}
+      max-parallel: 8
     runs-on: ubuntu-20.04
     steps:
       - name: DSI Studio
