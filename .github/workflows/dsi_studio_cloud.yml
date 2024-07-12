@@ -132,6 +132,14 @@ jobs:
         uses: actions/download-artifact@v3.0.0
         with:
           name: ${{ github.event.inputs.id }}_corrected_src          
+      - name: Create Release
+        if: steps.cache-corrected-src.outputs.cache-hit != 'true'      
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: *.src.gz 
+          name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}            
       - name: Quality Check
         if: steps.cache-corrected-src.outputs.cache-hit != 'true'
         run: |        
@@ -141,10 +149,11 @@ jobs:
           ./dsi-studio/dsi_studio --action=qc --source=./${{ github.event.inputs.id }}-corrected_src
           mv qc.txt corrected_qc.txt             
       - name: Create Release
+        if: steps.cache-corrected-src.outputs.cache-hit != 'true'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: corrected_qc.txt
+          artifacts: corrected_qc.txt 
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}          
           
@@ -168,8 +177,9 @@ jobs:
       - name: GQI and QSDR Reconstruction
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}  ${{ github.event.inputs.src_param}}  
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --method=7  ${{ github.event.inputs.src_param}}    
+          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }}  ${{ github.event.inputs.src_param}}  
+          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }} --method=7  ${{ github.event.inputs.src_param}}    
+          mv ./${{ github.event.inputs.id }}-corrected_src/*.fib.gz .
       - name: Save GQI FIB Files
         uses: actions/upload-artifact@v2.2.4
         with:
