@@ -74,23 +74,23 @@ jobs:
       - name: Check If Done
         run: wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
       - name: Load SRC Files
-        if: ${{ failure() }}   
+        if: failure()  
         uses: actions/cache@v3
         with:
           path: ./${{ github.event.inputs.id }}-src
           key: ${{ github.event.inputs.id }}-src  
       - name: Cache FSL environment
-        if: ${{ failure() }} 
+        if: failure()
         id: cache-fsl
         uses: actions/cache@v3
         with:
           path: /opt/fsl
           key: ${{ runner.os }}-fsl
       - name: Prepare FSL environment
-        if: steps.cache-fsl.outputs.cache-hit != 'true' && ${{ failure() }} 
+        if: steps.cache-fsl.outputs.cache-hit != 'true' && failure() 
         run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
       - name: Eddy
-        if: ${{ failure() }} 
+        if: failure()
         run: |
           export OS="Linux"
           export FSLDIR="/opt/fsl"
@@ -105,12 +105,13 @@ jobs:
           cp ./${{ github.event.inputs.id }}-src/${{ matrix.files }} .
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}              
       - name: Save SRC Files
+        continue-on-error: true
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_corrected_src
           path: ${{ matrix.files }}  
       - name: Create Release
-        if: ${{ failure() }} 
+        if: failure()
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
@@ -137,7 +138,6 @@ jobs:
           ./dsi-studio/dsi_studio --action=qc --source=./${{ github.event.inputs.id }}-corrected_src
           mv qc.txt corrected_qc.txt             
       - name: Create Release
-        if: steps.cache-corrected-src.outputs.cache-hit != 'true'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
@@ -162,7 +162,7 @@ jobs:
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz
       - name: GQI and QSDR Reconstruction
-        if: ${{ failure() }}
+        if: failure()
         run: |
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
@@ -170,7 +170,7 @@ jobs:
           ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}    
           mv ./${{ github.event.inputs.id }}-corrected_src/*.fib.gz .
       - name: Create Release
-        if: ${{ failure() }}
+        if: failure()
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
@@ -180,14 +180,17 @@ jobs:
           name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}  
       - name: Save GQI FIB Files
+        continue-on-error: true
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_GQI_fib
           path: ./${{ matrix.files }}.gqi.fib.gz              
       - name: QSDR Reconstruction
+        continue-on-error: true
         run: |
           rm *.fib.gz
       - name: Save QSDR FIB Files
+        continue-on-error: true
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_QSDR_fib
@@ -202,12 +205,12 @@ jobs:
         run: |
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.db.fib.gz
       - name: Prepare FIB Files
-        if: ${{ failure() }} 
+        if: failure()
         uses: actions/download-artifact@v3.0.0
         with:
           name: ${{ github.event.inputs.id }}_QSDR_fib
       - name: Database Construction
-        if: ${{ failure() }} 
+        if: failure()
         run: |        
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ github.event.inputs.id }} .
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
@@ -217,7 +220,7 @@ jobs:
             ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --output=${{ github.event.inputs.id }}.db.fib.gz
           fi
       - name: Create Release
-        if: ${{ failure() }} 
+        if: failure()
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
