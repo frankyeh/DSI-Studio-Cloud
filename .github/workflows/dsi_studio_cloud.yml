@@ -16,18 +16,14 @@ jobs:
     name: Download OpenNeuro
     runs-on: ubuntu-20.04
     outputs:
-      subjects: ${{ steps.sub.outputs.subjects }}
+      subjects: ${{ steps.data.outputs.subjects }}
       dataset_description: ${{ steps.data.outputs.dataset_description }}
     steps:
       - name: Download OpenNeuro
-        id: sub
-        run: |
-          SUBJECTS=$(aws s3 ls --no-sign-request s3://openneuro.org/${{ github.event.inputs.id }}/ | grep 'sub-' | awk '{print $NF}' | xargs -n 1 basename)
-          echo "subjects=$SUBJECTS" >> $GITHUB_ENV
-          echo "::set-output name=subjects::$(echo $SUBJECTS | tr ' ' ',')"
-      - name: Get Description
         id: data
         run: |
+          SUBJECTS=$(aws s3 ls --no-sign-request s3://openneuro.org/${{ github.event.inputs.id }}/ | grep 'sub-' | awk '{print $NF}' | xargs -n 1 basename)
+          echo "::set-output name=subjects::$(echo $SUBJECTS | tr ' ' )"
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
           content=`cat dataset_description.json`
           content="${content//'%'/'%25'}"
@@ -36,7 +32,7 @@ jobs:
           echo "::set-output name=dataset_description::$content"  
           
   download_data:
-    name: "NIFTI to SRC"
+    name: NIFTI to SRC
     needs: open_neuro
     runs-on: ubuntu-20.04
     outputs:
