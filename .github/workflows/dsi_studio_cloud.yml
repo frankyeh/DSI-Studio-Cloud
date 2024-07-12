@@ -68,25 +68,31 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
-        run: wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
+        run: |
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }} 2>/dev/null
+          if [ ! -f ${{ matrix.files }} ]; then
+            echo "file_exists=false" >> $GITHUB_ENV
+          else
+            echo "file_exists=true" >> $GITHUB_ENV
+          fi
       - name: Load SRC Files
-        if: failure()  
+        if: env.file_exists == 'false'  
         uses: actions/cache@v3
         with:
           path: ./${{ github.event.inputs.id }}-src
           key: ${{ github.event.inputs.id }}-src  
       - name: Cache FSL environment
-        if: failure()
+        if: env.file_exists == 'false'
         id: cache-fsl
         uses: actions/cache@v3
         with:
           path: /opt/fsl
           key: ${{ runner.os }}-fsl
       - name: Prepare FSL environment
-        if: steps.cache-fsl.outputs.cache-hit != 'true' && failure() 
+        if: steps.cache-fsl.outputs.cache-hit != 'true' && env.file_exists == 'false'
         run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
       - name: Eddy
-        if: failure()
+        if: env.file_exists == 'false'
         run: |
           export OS="Linux"
           export FSLDIR="/opt/fsl"
@@ -99,21 +105,20 @@ jobs:
           export PATH="$FSLDIR/bin:$PATH"
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           cp ./${{ github.event.inputs.id }}-src/${{ matrix.files }} .
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}              
-      - name: Save SRC Files
-        continue-on-error: true
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: ${{ github.event.inputs.id }}_corrected_src
-          path: ${{ matrix.files }}  
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}               
       - name: Create Release
-        if: failure()
+        if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
           artifacts: ${{ matrix.files }} 
           name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}  
+      - name: Save SRC Files
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: ${{ github.event.inputs.id }}_corrected_src
+          path: ${{ matrix.files }} 
           
   src_quality_check:
     name: SRC Quality Check
@@ -155,17 +160,22 @@ jobs:
     steps:
       - name: Check If Done
         run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz 2>/dev/null
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz 2>/dev/null
+          if [ ! -f "${{ matrix.files }}.qsdr.fib.gz" ]; then
+            echo "file_exists=false" >> $GITHUB_ENV
+          else
+            echo "file_exists=true" >> $GITHUB_ENV
+          fi
       - name: GQI and QSDR Reconstruction
-        if: failure()
+        if: env.file_exists == 'false'
         run: |
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
       - name: Create Release
-        if: failure()
+        if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
@@ -175,17 +185,12 @@ jobs:
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}  
       - name: Save GQI FIB Files
-        continue-on-error: true
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_GQI_fib
           path: ./${{ matrix.files }}.gqi.fib.gz              
-      - name: QSDR Reconstruction
-        continue-on-error: true
-        run: |
-          rm *.fib.gz
       - name: Save QSDR FIB Files
-        continue-on-error: true
+        if: env.file_exists == 'false'
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_QSDR_fib
@@ -201,14 +206,19 @@ jobs:
     steps:
       - name: Check If Done
         run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.db.fib.gz
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.db.fib.gz 2>/dev/null
+          if [ ! -f "${{ matrix.files }}.db.fib.gz" ]; then
+            echo "file_exists=false" >> $GITHUB_ENV
+          else
+            echo "file_exists=true" >> $GITHUB_ENV
+          fi
       - name: Prepare FIB Files
-        if: failure()
+        if: env.file_exists == 'false'
         uses: actions/download-artifact@v3.0.0
         with:
           name: ${{ github.event.inputs.id }}_QSDR_fib
       - name: Database Construction
-        if: failure()
+        if: env.file_exists == 'false'
         run: |        
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ github.event.inputs.id }} .
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
@@ -218,7 +228,7 @@ jobs:
             ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --output=${{ github.event.inputs.id }}.db.fib.gz
           fi
       - name: Create Release
-        if: failure()
+        if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
