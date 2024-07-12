@@ -71,21 +71,36 @@ jobs:
       max-parallel: 8
     runs-on: ubuntu-20.04
     steps:
-      - name: Cache Corrected SRC Files
-        if: github.event.inputs.eddy == 'true'
-        id: cache-corrected-src
-        uses: actions/cache@v3
+      - name: Check SRC exists
+        id: check_file
+        uses: actions/github-script@v6
         with:
-          path: ./${{ github.event.inputs.id }}-corrected-src
-          key: ${{ github.event.inputs.id }}-corrected-src
+          script: |
+            const releaseTag = '${{ github.event.inputs.id }}'; // Replace with your release tag
+            const fileName = '${{ matrix.files }}'; // Replace with the file you are checking
+
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const release = releases.data.find(release => release.tag_name === releaseTag);
+            if (!release) {
+              throw new Error(`Release ${releaseTag} not found.`);
+            }
+
+            const assets = release.assets;
+            const fileExists = assets.some(asset => asset.name === fileName);
+
+            return fileExists;
       - name: Load SRC Files
-        if: steps.cache-corrected-src.outputs.cache-hit != 'true'      
+        if: steps.check_file.outputs.result != 'true'     
         uses: actions/cache@v3
         with:
           path: ./${{ github.event.inputs.id }}-src
           key: ${{ github.event.inputs.id }}-src  
       - name: Cache FSL environment
-        if: github.event.inputs.eddy == 'true' && steps.cache-corrected-src.outputs.cache-hit != 'true'
+        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
         id: cache-fsl
         uses: actions/cache@v3
         with:
@@ -95,7 +110,7 @@ jobs:
         if: steps.cache-fsl.outputs.cache-hit != 'true' && github.event.inputs.eddy == 'true' && steps.cache-corrected-src.outputs.cache-hit != 'true'
         run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
       - name: Eddy and align ACPC
-        if: github.event.inputs.eddy == 'true' && steps.cache-corrected-src.outputs.cache-hit != 'true'
+        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true''
         run: |
           export OS="Linux"
           export FSLDIR="/opt/fsl"
@@ -110,11 +125,19 @@ jobs:
           cp ./${{ github.event.inputs.id }}-src/${{ matrix.files }} .
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}              
       - name: Save SRC Files
-        if: github.event.inputs.eddy == 'true' && steps.cache-corrected-src.outputs.cache-hit != 'true'
+        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_corrected_src
           path: ${{ matrix.files }}  
+      - name: Create Release
+        if: steps.check_file.outputs.result != 'true'
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: ${{ matrix.files }} 
+          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}  
           
   src_quality_check:
     name: SRC Quality Check
