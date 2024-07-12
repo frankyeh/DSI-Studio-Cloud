@@ -4,7 +4,7 @@ on:
     inputs:
       id:
         description: 'OpenNeuro Accession Number'
-        default: ds001021
+        default: ds001743
         required: true
       eddy:
         type: boolean
@@ -107,7 +107,7 @@ jobs:
       - name: Save GQI FIB Files
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: ${{ github.event.inputs.id }}_QSDR_fib
+          name: ${{ github.event.inputs.id }}_GQI_fib
           path: ./*.fib.gz          
       - name: QSDR Reconstruction
         run: |
@@ -116,7 +116,7 @@ jobs:
       - name: Save QSDR FIB Files
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: ${{ github.event.inputs.id }}_GQI_fib
+          name: ${{ github.event.inputs.id }}_QSDR_fib
           path: ./*.fib.gz          
 
   quality_check2:
@@ -139,7 +139,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: qc.txt
-          name: "${{ fromjson(needs.preprocessing.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}
       - name: Corrected SRC Files
         if: github.event.inputs.eddy == 'true' || github.event.inputs.acpc == 'true'
@@ -157,7 +157,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: corrected_qc.txt
-          name: "${{ fromjson(needs.preprocessing.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}          
           
   database_construction:
