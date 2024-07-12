@@ -42,6 +42,7 @@ jobs:
           echo "::set-output name=dataset_description::$content"    
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
           ./dsi-studio/dsi_studio --action=src --source=./${{ github.event.inputs.id }}
+          mkdir ${{ github.event.inputs.id }}-src
           mv ./**/*src.gz ${{ github.event.inputs.id }}-src
           ./dsi-studio/dsi_studio --action=qc --source=./${{ github.event.inputs.id }}-src
           SRC_LIST=$(ls *.src.gz | jq -R -s -c 'split("\n")[:-1]')
