@@ -28,7 +28,7 @@ jobs:
           content="${content//$'\n'/'%0A'}"
           content="${content//$'\r'/'%0D'}"
           echo "::set-output name=dataset_description::$content"  
-          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ github.event.inputs.id }} | grep 'sub-' | awk '{print $NF}' | xargs -n 1 basename)
+          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ github.event.inputs.id }} | grep 'sub-' | awk '{print $NF}')
           echo "::set-output name=subjects::$(echo $SUBJECTS | tr ' ' )"
           
         
