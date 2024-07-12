@@ -107,7 +107,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./*.src.gz
-          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}              
       - name: GQI Reconstruction
         run: |
@@ -122,7 +122,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./*.fib.gz
-          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}              
       - name: QSDR Reconstruction
         run: |
@@ -138,7 +138,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./*.fib.gz
-          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}              
 
   quality_check2:
@@ -205,6 +205,6 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ github.event.inputs.id }}.db.fib.gz
-          name: "${{ github.event.inputs.id }}.db.fib.gz"
+          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}          
      
