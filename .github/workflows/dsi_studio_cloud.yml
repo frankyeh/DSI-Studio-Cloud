@@ -110,7 +110,7 @@ jobs:
         if: steps.cache-fsl.outputs.cache-hit != 'true' && github.event.inputs.eddy == 'true' && steps.cache-corrected-src.outputs.cache-hit != 'true'
         run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
       - name: Eddy and align ACPC
-        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true''
+        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
         run: |
           export OS="Linux"
           export FSLDIR="/opt/fsl"
