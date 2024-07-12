@@ -52,7 +52,7 @@ jobs:
       - name: Check Files
         id: check_link
         run: |
-          FILE = $(echo ${{ matrix.subjects }} | tr '/' '_')
+          FILE=$((echo ${{ matrix.subjects }} | tr '/' '_')
           echo "FILE=$FILE" >> $GITHUB_ENV
           if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/$FILE.raw.src.gz; then
             echo "src_exists=true" >> $GITHUB_ENV
