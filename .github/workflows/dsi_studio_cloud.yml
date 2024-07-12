@@ -34,14 +34,6 @@ jobs:
           mkdir ${{ github.event.inputs.id }}-src
           mv ./**/*src.gz ${{ github.event.inputs.id }}-src
           ./dsi-studio/dsi_studio --action=qc --source=./${{ github.event.inputs.id }}-src
-      - name: Create Release
-        if: steps.cache-src.outputs.cache-hit != 'true'      
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: qc.txt
-          name: "${{ fromjson(steps.download_data.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}     
       - name: Get Data Infomation
         id: data
         run: |
@@ -53,7 +45,15 @@ jobs:
           echo "::set-output name=dataset_description::$content"  
           cd ${{ github.event.inputs.id }}-src
           SRC_LIST=$(ls *.src.gz | jq -R -s -c 'split("\n")[:-1]')
-          echo ::set-output name=files::${SRC_LIST}            
+          echo ::set-output name=files::${SRC_LIST}     
+      - name: Create Release
+        if: steps.cache-src.outputs.cache-hit != 'true'      
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: qc.txt
+          name: "${{ fromjson(steps.data.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}     
 
   topup_eddy:
     name: TOPUP/EDDY
