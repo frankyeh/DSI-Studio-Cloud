@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       subjects: ${{ steps.data.outputs.subjects }}
+      files: ${{ steps.data.outputs.files }}
       dataset_description: ${{ steps.data.outputs.dataset_description }}
     steps:
       - name: OpenNeuro
@@ -32,7 +33,9 @@ jobs:
 
           # Get subjects
           SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/ds001743 --recursive | grep 'dwi' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | jq -R -s -c 'split("\n")[:-1]')
+          FILES=$(echo "$SUBJECTS" | tr '/' '_')
           echo "::set-output name=subjects::$SUBJECTS"
+          echo "::set-output name=files::$FILES"
           
   download_data:
     name: NIFTI to SRC
@@ -40,7 +43,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       subjects: ${{ needs.open_neuro.outputs.subjects }}
-      files: ${{ replace(needs.open_neuro.outputs.subjects,'/','_') }}
+      files: ${{ needs.open_neuro.outputs.files }}
       dataset_description: ${{ needs.open_neuro.outputs.dataset_description }}
     strategy:
       matrix:
@@ -49,7 +52,7 @@ jobs:
       - name: Check Files
         id: check_link
         run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ replace(matrix.files, '/', '_') }}.raw.src.gz; then
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ replace(matrix.subjects, '/', '_') }}.raw.src.gz; then
             echo "src_exists=true" >> $GITHUB_ENV
           else
             echo "src_exists=false" >> $GITHUB_ENV
