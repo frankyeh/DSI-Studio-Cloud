@@ -113,7 +113,7 @@ jobs:
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: *.fib.gz
+          artifacts: ./*.fib.gz
           name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}              
       - name: QSDR Reconstruction
@@ -129,7 +129,7 @@ jobs:
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: *.fib.gz
+          artifacts: ./*.fib.gz
           name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}              
 
