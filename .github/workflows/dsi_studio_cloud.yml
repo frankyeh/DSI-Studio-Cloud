@@ -137,7 +137,7 @@ jobs:
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: *.src.gz 
+          artifacts: ./*.src.gz 
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}            
       - name: Quality Check
