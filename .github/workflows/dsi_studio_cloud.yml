@@ -19,17 +19,19 @@ jobs:
       subjects: ${{ steps.data.outputs.subjects }}
       dataset_description: ${{ steps.data.outputs.dataset_description }}
     steps:
-      - name: Download OpenNeuro
+      - name: OpenNeuro
         id: data
         run: |
-          SUBJECTS=$(aws s3 ls --no-sign-request s3://openneuro.org/${{ github.event.inputs.id }}/ | grep 'sub-' | awk '{print $NF}' | xargs -n 1 basename)
-          echo "::set-output name=subjects::$(echo $SUBJECTS | tr ' ' )"
+          aws s3 ls --no-sign-request s3://openneuro.org/${{ github.event.inputs.id }}
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
           content=`cat dataset_description.json`
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
           content="${content//$'\r'/'%0D'}"
           echo "::set-output name=dataset_description::$content"  
+          SUBJECTS=$(aws s3 ls --no-sign-request s3://openneuro.org/${{ github.event.inputs.id }} | grep 'sub-' | awk '{print $NF}' | xargs -n 1 basename)
+          echo "::set-output name=subjects::$(echo $SUBJECTS | tr ' ' )"
+          
           
   download_data:
     name: NIFTI to SRC
