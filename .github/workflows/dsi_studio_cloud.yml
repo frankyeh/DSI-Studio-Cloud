@@ -59,7 +59,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./*.raw.src.gz
-          name: "${{ fromjson(steps.data.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.open_neuro.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}     
 
   topup_eddy:
