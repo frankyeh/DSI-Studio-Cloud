@@ -6,10 +6,6 @@ on:
         description: 'OpenNeuro Accession Number'
         default: ds001743
         required: true
-      eddy:
-        type: boolean
-        default: 'false'
-        description: 'Preprocessing: TOPUP/EDDY'
       src_param:
         required: false
         default: ""
@@ -166,9 +162,8 @@ jobs:
         run: |
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }} --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
-          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}    
-          mv ./${{ github.event.inputs.id }}-corrected_src/*.fib.gz .
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
       - name: Create Release
         if: failure()
         uses: ncipollo/release-action@v1.10.0
@@ -177,7 +172,7 @@ jobs:
           artifacts: |
             ${{ matrix.files }}.gqi.fib.gz
             ${{ matrix.files }}.qsdr.fib.gz
-          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}  
       - name: Save GQI FIB Files
         continue-on-error: true
