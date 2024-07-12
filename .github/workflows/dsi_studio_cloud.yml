@@ -10,10 +10,10 @@ on:
         type: boolean
         default: 'false'
         description: 'Preprocessing: TOPUP/EDDY'
-      acpc:
-        type: boolean
-        default: 'false'
-        description: 'Preprocessing: Align AC-PC'
+      src_param:
+        required: false
+        default: ""
+        description: 'Other Reconstruction Parameters'
       
 jobs:    
   download_data:
@@ -91,11 +91,7 @@ jobs:
           export FSLTCLSH="/usr/bin/tclsh"
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=${{ matrix.files }} --align_acpc=${{ github.event.inputs.acpc }}              
-      - name: align ACPC
-        if: github.event.inputs.eddy == 'false' && github.event.inputs.acpc == 'true'
-        run: |
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --save_src=${{ matrix.files }} --align_acpc=1
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}              
       - name: Save SRC Files
         if: github.event.inputs.eddy == 'true'
         uses: actions/upload-artifact@v2.2.4
@@ -112,7 +108,7 @@ jobs:
           tag: ${{ github.event.inputs.id }}              
       - name: GQI Reconstruction
         run: |
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}    
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}  ${{ github.event.inputs.src_param}}  
       - name: Save GQI FIB Files
         uses: actions/upload-artifact@v2.2.4
         with:
@@ -128,7 +124,7 @@ jobs:
       - name: QSDR Reconstruction
         run: |
           rm *.fib.gz
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --method=7      
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --method=7  ${{ github.event.inputs.src_param}}    
       - name: Save QSDR FIB Files
         uses: actions/upload-artifact@v2.2.4
         with:
