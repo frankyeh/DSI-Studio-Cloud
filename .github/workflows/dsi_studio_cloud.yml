@@ -93,6 +93,9 @@ jobs:
             const fileExists = assets.some(asset => asset.name === fileName);
 
             return fileExists;
+      - name: Download Corrected SRC
+        if: steps.check_file.outputs.result == 'true'  
+        run: wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
       - name: Load SRC Files
         if: steps.check_file.outputs.result != 'true'     
         uses: actions/cache@v3
@@ -107,7 +110,7 @@ jobs:
           path: /opt/fsl
           key: ${{ runner.os }}-fsl
       - name: Prepare FSL environment
-        if: steps.cache-fsl.outputs.cache-hit != 'true' && github.event.inputs.eddy == 'true' && steps.cache-corrected-src.outputs.cache-hit != 'true'
+        if: steps.cache-fsl.outputs.cache-hit != 'true' && github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
         run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
       - name: Eddy and align ACPC
         if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
@@ -125,13 +128,13 @@ jobs:
           cp ./${{ github.event.inputs.id }}-src/${{ matrix.files }} .
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}              
       - name: Save SRC Files
-        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
+        if: github.event.inputs.eddy == 'true'
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_corrected_src
           path: ${{ matrix.files }}  
       - name: Create Release
-        if: steps.check_file.outputs.result != 'true'
+        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
@@ -146,28 +149,11 @@ jobs:
       dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
     runs-on: ubuntu-20.04
     steps:
-      - name: Cache Corrected SRC Files
-        if: github.event.inputs.eddy == 'true'
-        id: cache-corrected-src
-        uses: actions/cache@v3
-        with:
-          path: ./${{ github.event.inputs.id }}-corrected-src
-          key: ${{ github.event.inputs.id }}-corrected-src
-      - name: Load Corrected SRC Files
-        if: steps.cache-corrected-src.outputs.cache-hit != 'true'      
+      - name: Load Corrected SRC Files   
         uses: actions/download-artifact@v3.0.0
         with:
-          name: ${{ github.event.inputs.id }}_corrected_src          
-      - name: Create Release
-        if: steps.cache-corrected-src.outputs.cache-hit != 'true'      
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: ./*.src.gz 
-          name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}            
+          name: ${{ github.event.inputs.id }}_corrected_src                   
       - name: Quality Check
-        if: steps.cache-corrected-src.outputs.cache-hit != 'true'
         run: |        
           mkdir ${{ github.event.inputs.id }}-corrected_src
           mv *.src.gz ./${{ github.event.inputs.id }}-corrected_src
@@ -186,31 +172,42 @@ jobs:
   reconstruction:
     name: "SRC to FIB"
     continue-on-error: true
-    needs: src_quality_check
+    needs: topup_eddy
     outputs:
-      dataset_description: ${{ needs.src_quality_check.outputs.dataset_description }}    
+      dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
     strategy:
       matrix:
-        files: ${{ fromjson(needs.src_quality_check.outputs.files) }}
+        files: ${{ fromjson(needs.topup_eddy.outputs.files) }}
       max-parallel: 8
     runs-on: ubuntu-20.04
     steps:
-      - name: Load SRC Files
-        uses: actions/cache@v3
-        with:
-          path: ./${{ github.event.inputs.id }}-corrected_src
-          key: ${{ github.event.inputs.id }}-corrected_src  
-      - name: GQI and QSDR Reconstruction
+      - name: Check If Done
         run: |
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz
+      - name: GQI and QSDR Reconstruction
+        if: ${{ failure() }}
+        run: |
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }}  ${{ github.event.inputs.src_param}}  
-          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }} --method=7  ${{ github.event.inputs.src_param}}    
+          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }} --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
+          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-corrected_src/${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}    
           mv ./${{ github.event.inputs.id }}-corrected_src/*.fib.gz .
+      - name: Create Release
+        if: ${{ failure() }}
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: |
+            ${{ matrix.files }}.gqi.fib.gz
+            ${{ matrix.files }}.qsdr.fib.gz
+          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}  
       - name: Save GQI FIB Files
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_GQI_fib
-          path: ./*gqi.1.25.fib.gz              
+          path: ./${{ matrix.files }}.gqi.fib.gz              
       - name: QSDR Reconstruction
         run: |
           rm *.fib.gz
@@ -218,7 +215,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_QSDR_fib
-          path: ./*.fib.gz          
+          path: ./${{ matrix.files }}.qsdr.fib.gz          
           
   database_construction:
     name: "Create Database"
