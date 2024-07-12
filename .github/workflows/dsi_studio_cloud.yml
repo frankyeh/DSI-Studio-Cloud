@@ -64,7 +64,7 @@ jobs:
     continue-on-error: true
     needs: download_data
     outputs:
-      files: ${{ steps.download_data.outputs.files }}
+      files: ${{ needs.download_data.outputs.files }}
       dataset_description: ${{ needs.download_data.outputs.dataset_description }}    
     strategy:
       matrix:
@@ -150,7 +150,7 @@ jobs:
     continue-on-error: true
     needs: topup_eddy
     outputs:
-      files: ${{ steps.topup_eddy.outputs.files }}
+      files: ${{ needs.topup_eddy.outputs.files }}
       dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
     strategy:
       matrix:
@@ -200,7 +200,7 @@ jobs:
     name: Create Database
     needs: reconstruction
     outputs:
-      files: ${{ steps.reconstruction.outputs.files }}
+      files: ${{ needs.reconstruction.outputs.files }}
       dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}    
     runs-on: ubuntu-20.04
     steps:
