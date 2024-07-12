@@ -22,7 +22,7 @@ jobs:
       - name: Download OpenNeuro
         id: sub
         run: |
-          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/datasets/${{ github.event.inputs.id }}/ --recursive | grep 'sub-' | awk '{print $NF}' | xargs -n 1 basename)
+          SUBJECTS=$(aws  s3 ls --no-sign-request s3://openneuro.org/${{ github.event.inputs.id }}/ --recursive | grep 'sub-' | awk '{print $NF}' | xargs -n 1 basename)
           echo "subjects=$SUBJECTS" >> $GITHUB_ENV
           echo "::set-output name=subjects::$(echo $SUBJECTS | tr ' ' ',')"
       - name: Get Description
