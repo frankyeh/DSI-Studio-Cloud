@@ -108,7 +108,14 @@ jobs:
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_GQI_fib
-          path: ./*.fib.gz          
+          path: ./*.fib.gz    
+      - name: Create Release
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: *.fib.gz
+          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}              
       - name: QSDR Reconstruction
         run: |
           rm *.fib.gz
@@ -118,6 +125,13 @@ jobs:
         with:
           name: ${{ github.event.inputs.id }}_QSDR_fib
           path: ./*.fib.gz          
+      - name: Create Release
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: *.fib.gz
+          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}              
 
   quality_check2:
     name: SRC Quality Check
