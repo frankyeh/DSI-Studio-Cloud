@@ -107,7 +107,8 @@ jobs:
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=rec --source=./${{ github.event.inputs.id }}-src/${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=./${{ matrix.files }} ${{ github.event.inputs.src_param}}              
+          cp ./${{ github.event.inputs.id }}-src/${{ matrix.files }} .
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}              
       - name: Save SRC Files
         if: github.event.inputs.eddy == 'true' && steps.cache-corrected-src.outputs.cache-hit != 'true'
         uses: actions/upload-artifact@v2.2.4
