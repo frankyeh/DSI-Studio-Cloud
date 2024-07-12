@@ -60,7 +60,7 @@ jobs:
           echo ::set-output name=files::${SRC_LIST}            
 
   topup_eddy:
-    name: "TOPUP/EDDY"
+    name: TOPUP/EDDY
     continue-on-error: true
     needs: download_data
     outputs:
@@ -143,9 +143,10 @@ jobs:
           artifacts: corrected_qc.txt 
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}          
-          
+
   reconstruction:
-    name: "SRC to FIB"
+    name: SRC to FIB
+    continue-on-error: true
     needs: topup_eddy
     outputs:
       dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
@@ -194,8 +195,10 @@ jobs:
           path: ./${{ matrix.files }}.qsdr.fib.gz          
           
   database_construction:
-    name: "Create Database"
+    name: Create Database
     needs: reconstruction
+    outputs:
+      dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
