@@ -71,49 +71,26 @@ jobs:
       max-parallel: 8
     runs-on: ubuntu-20.04
     steps:
-      - name: Check SRC exists
-        id: check_file
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const releaseTag = '${{ github.event.inputs.id }}'; // Replace with your release tag
-            const fileName = '${{ matrix.files }}'; // Replace with the file you are checking
-
-            const releases = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-
-            const release = releases.data.find(release => release.tag_name === releaseTag);
-            if (!release) {
-              throw new Error(`Release ${releaseTag} not found.`);
-            }
-
-            const assets = release.assets;
-            const fileExists = assets.some(asset => asset.name === fileName);
-
-            return fileExists;
-      - name: Download Corrected SRC
-        if: steps.check_file.outputs.result == 'true'  
+      - name: Check If Done
         run: wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
       - name: Load SRC Files
-        if: steps.check_file.outputs.result != 'true'     
+        if: ${{ failure() }}   
         uses: actions/cache@v3
         with:
           path: ./${{ github.event.inputs.id }}-src
           key: ${{ github.event.inputs.id }}-src  
       - name: Cache FSL environment
-        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
+        if: ${{ failure() }} 
         id: cache-fsl
         uses: actions/cache@v3
         with:
           path: /opt/fsl
           key: ${{ runner.os }}-fsl
       - name: Prepare FSL environment
-        if: steps.cache-fsl.outputs.cache-hit != 'true' && github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
+        if: steps.cache-fsl.outputs.cache-hit != 'true' && ${{ failure() }} 
         run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
-      - name: Eddy and align ACPC
-        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
+      - name: Eddy
+        if: ${{ failure() }} 
         run: |
           export OS="Linux"
           export FSLDIR="/opt/fsl"
@@ -128,13 +105,12 @@ jobs:
           cp ./${{ github.event.inputs.id }}-src/${{ matrix.files }} .
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }} ${{ github.event.inputs.src_param}}              
       - name: Save SRC Files
-        if: github.event.inputs.eddy == 'true'
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_corrected_src
           path: ${{ matrix.files }}  
       - name: Create Release
-        if: github.event.inputs.eddy == 'true' && steps.check_file.outputs.result != 'true'
+        if: ${{ failure() }} 
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
@@ -222,11 +198,16 @@ jobs:
     needs: reconstruction
     runs-on: ubuntu-20.04
     steps:
+      - name: Check If Done
+        run: |
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.db.fib.gz
       - name: Prepare FIB Files
+        if: ${{ failure() }} 
         uses: actions/download-artifact@v3.0.0
         with:
           name: ${{ github.event.inputs.id }}_QSDR_fib
       - name: Database Construction
+        if: ${{ failure() }} 
         run: |        
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ github.event.inputs.id }} .
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
@@ -236,6 +217,7 @@ jobs:
             ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --output=${{ github.event.inputs.id }}.db.fib.gz
           fi
       - name: Create Release
+        if: ${{ failure() }} 
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
