@@ -101,8 +101,8 @@ jobs:
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for file in "${files[@]}"; do
-            wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.raw.src.gz"
-            ./dsi-studio/dsi_studio --action=qc --source=${file}.raw.src.gz
+            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.raw.src.gz"
+            ./dsi-studio/dsi_studio --action=qc --source=.
             if [ -f "pre_topup_eddy_qc.txt" ]; then
               tail -n +2 qc.txt >> pre_topup_eddy_qc.txt
             else
@@ -161,7 +161,7 @@ jobs:
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.raw.src.gz
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.raw.src.gz
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }}.src.gz ${{ github.event.inputs.src_param}}               
       - name: Create Release
         if: env.file_exists == 'false'
@@ -190,8 +190,8 @@ jobs:
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for file in "${files[@]}"; do
-            wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
-            ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
+            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
+            ./dsi-studio/dsi_studio --action=qc --source=.
             if [ -f "post_topup_eddy_qc.txt" ]; then
               tail -n +2 qc.txt >> post_topup_eddy_qc.txt
             else
@@ -221,8 +221,8 @@ jobs:
       - name: Check If Done
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz || true
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz || true
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz || true
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz || true
           if [ ! -f "${{ matrix.files }}.qsdr.fib.gz" ]; then
             echo "file_exists=false" >> $GITHUB_ENV
           else
@@ -231,7 +231,7 @@ jobs:
       - name: GQI and QSDR Reconstruction
         if: env.file_exists == 'false'
         run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
       - name: Create Release
@@ -268,7 +268,7 @@ jobs:
     steps:
       - name: Check If Done
         run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz || true
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz || true
           if [ ! -f "${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz" ]; then
             echo "file_exists=false" >> $GITHUB_ENV
           else
