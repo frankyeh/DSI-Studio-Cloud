@@ -53,7 +53,6 @@ jobs:
       subjects: ${{ needs.info.outputs.subjects }}
       files: ${{ needs.info.outputs.files }}
       dataset_description: ${{ needs.info.outputs.dataset_description }}
-      qc: ${{ fromjson(needs.info.outputs.files) }}
     strategy:
       matrix:
         subjects: ${{ fromjson(needs.info.outputs.subjects) }}
@@ -93,25 +92,22 @@ jobs:
           tag: ${{ github.event.inputs.id }}   
           
   src_quality_check1:
-    name: SRC Quality Check
+    name: Raw SRC Quality Check
     needs: download_data
     runs-on: ubuntu-20.04
     steps:                
       - name: Quality Check
         run: |        
-          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
-          first_file="${{ needs.download_data.outputs.qc[0] }}"
-          wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${first_file}.src.gz"
-          ./dsi-studio/dsi_studio --action=qc --source=${first_file}.src.gz
-          mv qc.txt pre_topup_eddy_qc.txt
-          rm ${first_file}.src.gz
-  
-          # Append QC outputs from remaining files to all_qc.txt
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           for file in "${{ needs.download_data.outputs.qc }}"; do
-            wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
-            ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
-            tail -n +2 qc.txt >> pre_topup_eddy_qc.txt  # Append all lines except the header
-            rm ${file}.src.gz
+            wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.raw.src.gz"
+            ./dsi-studio/dsi_studio --action=qc --source=${file}.raw.src.gz
+            if [ -f "pre_topup_eddy_qc.txt" ]; then
+              tail -n +2 qc.txt >> pre_topup_eddy_qc.txt
+            else
+              mv qc.txt pre_topup_eddy_qc.txt
+            fi
+            rm ${file}.raw.src.gz
           done
 
       - name: Create Release
@@ -185,34 +181,30 @@ jobs:
           tag: ${{ github.event.inputs.id }}            
           
   src_quality_check2:
-    name: SRC Quality Check
-    needs: topup_eddy  
+    name: Post TOPUP/EDDY SRC Quality Check
+    needs: topup_eddy
     runs-on: ubuntu-20.04
     steps:                
       - name: Quality Check
         run: |        
-          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
-          first_file="${{ needs.topup_eddy.outputs.qc[0] }}"
-          wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${first_file}.src.gz"
-          ./dsi-studio/dsi_studio --action=qc --source=${first_file}.src.gz
-          mv qc.txt post_topup_eddy_qc.txt
-          rm ${first_file}.src.gz
-  
-          # Append QC outputs from remaining files to all_qc.txt
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           for file in "${{ needs.topup_eddy.outputs.qc }}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
-            tail -n +2 qc.txt >> post_topup_eddy_qc.txt  # Append all lines except the header
+            if [ -f "post_topup_eddy_qc.txt" ]; then
+              tail -n +2 qc.txt >> post_topup_eddy_qc.txt
+            else
+              mv qc.txt post_topup_eddy_qc.txt
+            fi
             rm ${file}.src.gz
           done
-
       - name: Create Release
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: all_qc.txt 
+          artifacts: post_topup_eddy_qc.txt 
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}          
+          tag: ${{ github.event.inputs.id }}           
 
   reconstruction:
     name: SRC to FIB
