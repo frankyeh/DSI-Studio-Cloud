@@ -232,10 +232,10 @@ jobs:
           
   database_construction:
     name: Create Database
-    needs: reconstruction
+    needs: metrics
     outputs:
-      files: ${{ needs.reconstruction.outputs.files }}
-      dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}    
+      files: ${{ needs.metrics.outputs.files }}
+      dataset_description: ${{ needs.metrics.outputs.dataset_description }}    
     strategy:
       matrix:
         metrics: ${{ fromJson(format('[{0}]', inputs.metrics.split(',').map(x => format('"{}"', x)).join(','))) }}
@@ -270,6 +270,6 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz
-          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.metrics.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}          
      
