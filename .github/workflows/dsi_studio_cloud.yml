@@ -99,7 +99,7 @@ jobs:
       - name: Quality Check
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
-          for file in "${{ needs.download_data.outputs.qc }}"; do
+          for file in "${{ needs.download_data.outputs.files }}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.raw.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.raw.src.gz
             if [ -f "pre_topup_eddy_qc.txt" ]; then
@@ -124,7 +124,6 @@ jobs:
     outputs:
       files: ${{ needs.download_data.outputs.files }}
       dataset_description: ${{ needs.download_data.outputs.dataset_description }}   
-      qc: ${{ fromjson(needs.info.outputs.files) }}
     strategy:
       matrix:
         files: ${{ fromjson(needs.download_data.outputs.files) }}
@@ -188,7 +187,7 @@ jobs:
       - name: Quality Check
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
-          for file in "${{ needs.topup_eddy.outputs.qc }}"; do
+          for file in "${{ needs.topup_eddy.outputs.files }}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
             if [ -f "post_topup_eddy_qc.txt" ]; then
