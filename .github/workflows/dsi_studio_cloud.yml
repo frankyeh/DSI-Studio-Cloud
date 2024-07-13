@@ -99,7 +99,7 @@ jobs:
       - name: Quality Check
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
-          files=($(echo "${{ needs.download_data.outputs.files }}" | jq -r '.[]'))
+          files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for file in "${files[@]}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.raw.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.raw.src.gz
@@ -188,7 +188,7 @@ jobs:
       - name: Quality Check
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
-          files=($(echo "${{ needs.download_data.outputs.files }}" | jq -r '.[]'))
+          files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for file in "${files[@]}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
