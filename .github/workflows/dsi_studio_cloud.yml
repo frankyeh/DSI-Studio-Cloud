@@ -58,7 +58,6 @@ jobs:
         subjects: ${{ fromjson(needs.info.outputs.subjects) }}
     steps:
       - name: Check Files
-        id: check_link
         run: |
           FILE=$(echo ${{ matrix.subjects }} | tr '/' '_')
           echo "FILE=$FILE" >> $GITHUB_ENV
@@ -95,8 +94,16 @@ jobs:
     name: Raw SRC Quality Check
     needs: download_data
     runs-on: ubuntu-20.04
-    steps:                
+    steps:     
+      - name: Check Files
+        run: |
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/pre_topup_eddy_qc.txt; then
+            echo "file_exists=true" >> $GITHUB_ENV
+          else
+            echo "file_exists=false" >> $GITHUB_ENV
+          fi
       - name: Quality Check
+        if: env.file_exists == 'false'
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
@@ -112,6 +119,7 @@ jobs:
           done
 
       - name: Create Release
+        if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
@@ -131,7 +139,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Check Files
-        id: check_link
         run: |
           if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz; then
             echo "file_exists=true" >> $GITHUB_ENV
@@ -184,8 +191,16 @@ jobs:
     name: Post TOPUP/EDDY SRC Quality Check
     needs: topup_eddy
     runs-on: ubuntu-20.04
-    steps:                
+    steps:       
+      - name: Check Files
+        run: |
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/post_topup_eddy_qc.txt; then
+            echo "file_exists=true" >> $GITHUB_ENV
+          else
+            echo "file_exists=false" >> $GITHUB_ENV
+          fi
       - name: Quality Check
+        if: env.file_exists == 'false'
         run: |        
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
@@ -200,6 +215,7 @@ jobs:
             rm ${file}.src.gz
           done
       - name: Create Release
+        if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
