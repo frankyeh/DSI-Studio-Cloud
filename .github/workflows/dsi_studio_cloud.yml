@@ -74,6 +74,14 @@ jobs:
           artifacts: ./${{ env.FILE }}.raw.src.gz
           name: "${{ fromjson(needs.open_neuro.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}     
+      - name: Create Release
+        if: failure()
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: ./${{ env.FILE }}.raw.src.gz
+          name: "${{ fromjson(needs.open_neuro.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}             
 
   topup_eddy:
     name: TOPUP/EDDY
@@ -127,6 +135,14 @@ jobs:
           artifacts: ${{ matrix.files }}.src.gz
           name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}  
+      - name: Create Release
+        if: failure()
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          allowUpdates: true
+          artifacts: ${{ matrix.files }}.src.gz
+          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
+          tag: ${{ github.event.inputs.id }}            
           
   src_quality_check:
     name: SRC Quality Check
@@ -151,7 +167,6 @@ jobs:
 
   reconstruction:
     name: SRC to FIB
-    continue-on-error: true
     needs: topup_eddy
     outputs:
       files: ${{ needs.topup_eddy.outputs.files }}
@@ -177,6 +192,7 @@ jobs:
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
+          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=qa,dti_fa
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
@@ -186,17 +202,20 @@ jobs:
             ${{ matrix.files }}.gqi.fib.gz
             ${{ matrix.files }}.qsdr.fib.gz
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}  
-      - name: Save GQI FIB Files
+          tag: ${{ github.event.inputs.id }}              
+      - name: Export QA and FA
+        run: |
+          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=qa,dti_fa
+      - name: Save QA
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: ${{ github.event.inputs.id }}_GQI_fib
-          path: ./${{ matrix.files }}.gqi.fib.gz              
-      - name: Save QSDR FIB Files
+          name: ${{ github.event.inputs.id }}_qa
+          path: ./${{ matrix.files }}.qsdr.fib.gz.qa.nii.gz
+      - name: Save FA
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: ${{ github.event.inputs.id }}_QSDR_fib
-          path: ./${{ matrix.files }}.qsdr.fib.gz          
+          name: ${{ github.event.inputs.id }}_fa
+          path: ./${{ matrix.files }}.qsdr.fib.gz.fa.nii.gz
           
   database_construction:
     name: Create Database
@@ -204,37 +223,40 @@ jobs:
     outputs:
       files: ${{ needs.reconstruction.outputs.files }}
       dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}    
+    strategy:
+      matrix:
+        metrics: ['qa','fa'] 
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
         run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ github.event.inputs.id }}.db.fib.gz || true
-          if [ ! -f "${{ github.event.inputs.id }}.db.fib.gz" ]; then
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ github.event.inputs.id }}.${{matrix.metrics}.db.fib.gz || true
+          if [ ! -f "${{ github.event.inputs.id }}.${{matrix.metrics}.db.fib.gz" ]; then
             echo "file_exists=false" >> $GITHUB_ENV
           else
             echo "file_exists=true" >> $GITHUB_ENV
           fi
-      - name: Prepare FIB Files
+      - name: Prepare Metrics
         if: env.file_exists == 'false'
         uses: actions/download-artifact@v3.0.0
         with:
-          name: ${{ github.event.inputs.id }}_QSDR_fib
+          name: ${{ github.event.inputs.id }}_${{matrix.metrics}
       - name: Database Construction
         if: env.file_exists == 'false'
         run: |        
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ github.event.inputs.id }} .
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           if [ -f participants.tsv ]; then
-            ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --demo=participants.tsv --output=${{ github.event.inputs.id }}.db.fib.gz
+            ./dsi-studio/dsi_studio --action=atl --source=*.${{matrix.metrics}.nii.gz --cmd=db --demo=participants.tsv --output=${{ github.event.inputs.id }}.${{matrix.metrics}.db.fib.gz
           else
-            ./dsi-studio/dsi_studio --action=atl --source=*.fib.gz --cmd=db --output=${{ github.event.inputs.id }}.db.fib.gz
+            ./dsi-studio/dsi_studio --action=atl --source=*.${{matrix.metrics}.nii.gz --cmd=db --output=${{ github.event.inputs.id }}.${{matrix.metrics}.db.fib.gz
           fi
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: ${{ github.event.inputs.id }}.db.fib.gz
+          artifacts: ${{ github.event.inputs.id }}.${{matrix.metrics}.db.fib.gz
           name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}          
      
