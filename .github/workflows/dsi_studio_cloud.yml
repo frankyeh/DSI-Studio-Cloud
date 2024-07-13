@@ -186,6 +186,7 @@ jobs:
     steps:
       - name: Check If Done
         run: |
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz || true
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz || true
           if [ ! -f "${{ matrix.files }}.qsdr.fib.gz" ]; then
@@ -197,10 +198,8 @@ jobs:
         if: env.file_exists == 'false'
         run: |
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
-          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
@@ -210,14 +209,19 @@ jobs:
             ${{ matrix.files }}.gqi.fib.gz
             ${{ matrix.files }}.qsdr.fib.gz
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}       
+          tag: ${{ github.event.inputs.id }}    
+      - name: Export Metrics
+        if: ${{ github.event.inputs.metrics != '' }}
+          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}          
       - name: Save Metrics
+        if: ${{ github.event.inputs.metrics != '' }}
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_metrics
           path: ./*.nii.gz
           
   database_construction:
+    if: ${{ github.event.inputs.metrics != '' }}
     name: Create Database
     needs: [info, reconstruction]
     outputs:
