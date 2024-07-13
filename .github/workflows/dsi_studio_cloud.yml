@@ -104,7 +104,7 @@ jobs:
             wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.raw.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=.
             if [ -f "pre_topup_eddy_qc.txt" ]; then
-              tail -n +2 qc.txt >> pre_topup_eddy_qc.txt
+              sed -n '2p' qc.txt >> pre_topup_eddy_qc.txt
             else
               mv qc.txt pre_topup_eddy_qc.txt
             fi
@@ -193,7 +193,7 @@ jobs:
             wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=.
             if [ -f "post_topup_eddy_qc.txt" ]; then
-              tail -n +2 qc.txt >> post_topup_eddy_qc.txt
+              sed -n '2p' qc.txt >> post_topup_eddy_qc.txt
             else
               mv qc.txt post_topup_eddy_qc.txt
             fi
