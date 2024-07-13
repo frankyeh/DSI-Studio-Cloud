@@ -53,6 +53,7 @@ jobs:
       subjects: ${{ needs.info.outputs.subjects }}
       files: ${{ needs.info.outputs.files }}
       dataset_description: ${{ needs.info.outputs.dataset_description }}
+      qc: ${{ fromjson(needs.info.outputs.files) }}
     strategy:
       matrix:
         subjects: ${{ fromjson(needs.info.outputs.subjects) }}
@@ -94,22 +95,19 @@ jobs:
   src_quality_check1:
     name: SRC Quality Check
     needs: download_data
-    outputs:
-      files: ${{ fromjson(needs.download_data.outputs.files) }}
-      dataset_description: ${{ needs.download_data.outputs.dataset_description }}    
     runs-on: ubuntu-20.04
     steps:                
       - name: Quality Check
         run: |        
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
-          first_file="${{ needs.download_data.outputs.files[0] }}"
+          first_file="${{ needs.download_data.outputs.qc[0] }}"
           wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${first_file}.src.gz"
           ./dsi-studio/dsi_studio --action=qc --source=${first_file}.src.gz
           mv qc.txt pre_topup_eddy_qc.txt
           rm ${first_file}.src.gz
   
           # Append QC outputs from remaining files to all_qc.txt
-          for file in "${{ needs.download_data.outputs.files[@]:1 }}"; do
+          for file in "${{ needs.download_data.outputs.qc[@]:1 }}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
             tail -n +2 qc.txt >> pre_topup_eddy_qc.txt  # Append all lines except the header
@@ -129,7 +127,8 @@ jobs:
     needs: download_data
     outputs:
       files: ${{ needs.download_data.outputs.files }}
-      dataset_description: ${{ needs.download_data.outputs.dataset_description }}    
+      dataset_description: ${{ needs.download_data.outputs.dataset_description }}   
+      qc: ${{ fromjson(needs.info.outputs.files) }}
     strategy:
       matrix:
         files: ${{ fromjson(needs.download_data.outputs.files) }}
@@ -187,23 +186,20 @@ jobs:
           
   src_quality_check2:
     name: SRC Quality Check
-    needs: topup_eddy
-    outputs:
-      files: ${{ fromjson(needs.topup_eddy.outputs.files) }}
-      dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
+    needs: topup_eddy  
     runs-on: ubuntu-20.04
     steps:                
       - name: Quality Check
         run: |        
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
-          first_file="${{ needs.topup_eddy.outputs.files[0] }}"
+          first_file="${{ needs.topup_eddy.outputs.qc[0] }}"
           wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${first_file}.src.gz"
           ./dsi-studio/dsi_studio --action=qc --source=${first_file}.src.gz
           mv qc.txt post_topup_eddy_qc.txt
           rm ${first_file}.src.gz
   
           # Append QC outputs from remaining files to all_qc.txt
-          for file in "${{ needs.topup_eddy.outputs.files[@]:1 }}"; do
+          for file in "${{ needs.topup_eddy.outputs.qc[@]:1 }}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
             tail -n +2 qc.txt >> post_topup_eddy_qc.txt  # Append all lines except the header
