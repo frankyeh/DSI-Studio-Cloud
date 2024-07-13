@@ -107,7 +107,7 @@ jobs:
           rm ${first_file}.src.gz
   
           # Append QC outputs from remaining files to all_qc.txt
-          for file in "${{ needs.download_data.outputs.qc[@]:1 }}"; do
+          for file in "${{ needs.download_data.outputs.qc }}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
             tail -n +2 qc.txt >> pre_topup_eddy_qc.txt  # Append all lines except the header
@@ -199,7 +199,7 @@ jobs:
           rm ${first_file}.src.gz
   
           # Append QC outputs from remaining files to all_qc.txt
-          for file in "${{ needs.topup_eddy.outputs.qc[@]:1 }}"; do
+          for file in "${{ needs.topup_eddy.outputs.qc }}"; do
             wget "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=${file}.src.gz
             tail -n +2 qc.txt >> post_topup_eddy_qc.txt  # Append all lines except the header
