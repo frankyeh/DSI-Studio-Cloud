@@ -212,7 +212,7 @@ jobs:
           tag: ${{ github.event.inputs.id }}    
       - name: Export Metrics
         if: ${{ github.event.inputs.metrics != '' }}
-          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}          
+        run: ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}          
       - name: Save Metrics
         if: ${{ github.event.inputs.metrics != '' }}
         uses: actions/upload-artifact@v2.2.4
