@@ -12,7 +12,7 @@ on:
         description: 'Other Reconstruction Parameters'
       metrics:
         required: false
-        default: 'qa,dti_fa'
+        default: '["qa","dti_fa"]'
         description: 'Metrics for database'
 jobs:    
   open_neuro:
@@ -215,7 +215,7 @@ jobs:
     strategy:
       matrix:
         files: ${{ fromjson(needs.topup_eddy.outputs.files) }}
-        metrics: ${{ input.metrics }}
+        metric: ${{ fromJson(inputs.metrics) }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
@@ -238,7 +238,7 @@ jobs:
       dataset_description: ${{ needs.metrics.outputs.dataset_description }}    
     strategy:
       matrix:
-        metrics: ${{ input.metrics }}
+        metric: ${{ fromJson(inputs.metrics) }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
