@@ -10,7 +10,10 @@ on:
         required: false
         default: ""
         description: 'Other Reconstruction Parameters'
-      
+      metrics:
+        required: false
+        default: "qa,dti_fa"
+        description: 'Metrics for database'
 jobs:    
   open_neuro:
     name: Download OpenNeuro
@@ -188,11 +191,10 @@ jobs:
       - name: GQI and QSDR Reconstruction
         if: env.file_exists == 'false'
         run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
-          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=qa,dti_fa
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
@@ -202,20 +204,31 @@ jobs:
             ${{ matrix.files }}.gqi.fib.gz
             ${{ matrix.files }}.qsdr.fib.gz
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}              
-      - name: Export QA and FA
+          tag: ${{ github.event.inputs.id }}       
+
+  metrics:
+    name: Export Metrics
+    needs: topup_eddy
+    outputs:
+      files: ${{ needs.topup_eddy.outputs.files }}
+      dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
+    strategy:
+      matrix:
+        files: ${{ fromjson(needs.topup_eddy.outputs.files) }}
+        metrics: ${{ fromJson(format('[{0}]', inputs.metrics.split(',').map(x => format('"{}"', x)).join(','))) }}
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check If Done
         run: |
-          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=qa,dti_fa
-      - name: Save QA
+          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz
+      - name: Export Metrics
+        run: |
+          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=metrics
+      - name: Save Metrics
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: ${{ github.event.inputs.id }}_qa
-          path: ./${{ matrix.files }}.qsdr.fib.gz.qa.nii.gz
-      - name: Save FA
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: ${{ github.event.inputs.id }}_fa
-          path: ./${{ matrix.files }}.qsdr.fib.gz.fa.nii.gz
+          name: ${{ github.event.inputs.id }}_metrics
+          path: ./${{ matrix.files }}.qsdr.fib.gz.metrics.nii.gz
           
   database_construction:
     name: Create Database
@@ -225,7 +238,7 @@ jobs:
       dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}    
     strategy:
       matrix:
-        metrics: ['qa','fa'] 
+        metrics: ${{ fromJson(format('[{0}]', inputs.metrics.split(',').map(x => format('"{}"', x)).join(','))) }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
