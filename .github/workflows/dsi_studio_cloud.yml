@@ -12,16 +12,17 @@ on:
         description: 'Other Reconstruction Parameters'
       metrics:
         required: false
-        default: '["qa","dti_fa"]'
+        default: qa,dti_fa
         description: 'Metrics for database'
 jobs:    
-  open_neuro:
+  info:
     name: Download OpenNeuro
     runs-on: ubuntu-20.04
     outputs:
       subjects: ${{ steps.data.outputs.subjects }}
       files: ${{ steps.data.outputs.files }}
       dataset_description: ${{ steps.data.outputs.dataset_description }}
+      metrics: ${{ steps.data.outputs.metrics }}
     steps:
       - name: OpenNeuro
         id: data
@@ -39,18 +40,22 @@ jobs:
           FILES=$(echo "$SUBJECTS" | tr '/' '_')
           echo "::set-output name=subjects::$SUBJECTS"
           echo "::set-output name=files::$FILES"
+
+          metrics="${{ github.event.inputs.metrics }}"
+          metrics=$(echo "[\"${metrics//,/\",\"}\"]")
+          echo "::set-output name=metrics::$metrics"
           
   download_data:
     name: NIFTI to SRC
-    needs: open_neuro
+    needs: info
     runs-on: ubuntu-20.04
     outputs:
-      subjects: ${{ needs.open_neuro.outputs.subjects }}
-      files: ${{ needs.open_neuro.outputs.files }}
-      dataset_description: ${{ needs.open_neuro.outputs.dataset_description }}
+      subjects: ${{ needs.info.outputs.subjects }}
+      files: ${{ needs.info.outputs.files }}
+      dataset_description: ${{ needs.info.outputs.dataset_description }}
     strategy:
       matrix:
-        subjects: ${{ fromjson(needs.open_neuro.outputs.subjects) }}
+        subjects: ${{ fromjson(needs.info.outputs.subjects) }}
     steps:
       - name: Check Files
         id: check_link
@@ -75,7 +80,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./${{ env.FILE }}.raw.src.gz
-          name: "${{ fromjson(needs.open_neuro.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.info.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}     
       - name: Create Release
         if: failure()
@@ -83,7 +88,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./${{ env.FILE }}.raw.src.gz
-          name: "${{ fromjson(needs.open_neuro.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.info.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}             
 
   topup_eddy:
@@ -195,6 +200,7 @@ jobs:
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
           ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
+          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
@@ -205,40 +211,21 @@ jobs:
             ${{ matrix.files }}.qsdr.fib.gz
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}       
-
-  metrics:
-    name: Export Metrics
-    needs: reconstruction
-    outputs:
-      files: ${{ needs.reconstruction.outputs.files }}
-      dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}    
-    strategy:
-      matrix:
-        files: ${{ fromjson(needs.reconstruction.outputs.files) }}
-        metric: ${{ fromJson(inputs.metrics) }}
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Check If Done
-        run: |
-          wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz
-      - name: Export Metrics
-        run: |
-          ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=metrics
       - name: Save Metrics
         uses: actions/upload-artifact@v2.2.4
         with:
           name: ${{ github.event.inputs.id }}_metrics
-          path: ./${{ matrix.files }}.qsdr.fib.gz.metrics.nii.gz
+          path: ./*.nii.gz
           
   database_construction:
     name: Create Database
-    needs: metrics
+    needs: [info, reconstruction]
     outputs:
       files: ${{ needs.metrics.outputs.files }}
       dataset_description: ${{ needs.metrics.outputs.dataset_description }}    
     strategy:
       matrix:
-        metric: ${{ fromJson(inputs.metrics) }}
+        metrics: ${{ fromJson(needs.info.outputs.metrics) }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check If Done
@@ -253,7 +240,7 @@ jobs:
         if: env.file_exists == 'false'
         uses: actions/download-artifact@v3.0.0
         with:
-          name: ${{ github.event.inputs.id }}_${{matrix.metrics}}
+          name: ${{ github.event.inputs.id }}_metrics
       - name: Database Construction
         if: env.file_exists == 'false'
         run: |        
@@ -270,6 +257,6 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz
-          name: "${{ fromjson(needs.metrics.outputs.dataset_description).Name }}"
+          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}          
      
