@@ -208,13 +208,13 @@ jobs:
 
   metrics:
     name: Export Metrics
-    needs: topup_eddy
+    needs: reconstruction
     outputs:
-      files: ${{ needs.topup_eddy.outputs.files }}
-      dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
+      files: ${{ needs.reconstruction.outputs.files }}
+      dataset_description: ${{ needs.reconstruction.outputs.dataset_description }}    
     strategy:
       matrix:
-        files: ${{ fromjson(needs.topup_eddy.outputs.files) }}
+        files: ${{ fromjson(needs.reconstruction.outputs.files) }}
         metric: ${{ fromJson(inputs.metrics) }}
     runs-on: ubuntu-20.04
     steps:
