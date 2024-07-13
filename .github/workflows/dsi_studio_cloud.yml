@@ -113,7 +113,7 @@ jobs:
             if [ -f "pre_topup_eddy_qc.txt" ]; then
               sed -n '2p' qc.txt >> pre_topup_eddy_qc.txt
             else
-              mv qc.txt pre_topup_eddy_qc.txt
+              head -n 2 qc.txt > pre_topup_eddy_qc.txt
             fi
             rm ${file}.raw.src.gz
           done
@@ -210,7 +210,7 @@ jobs:
             if [ -f "post_topup_eddy_qc.txt" ]; then
               sed -n '2p' qc.txt >> post_topup_eddy_qc.txt
             else
-              mv qc.txt post_topup_eddy_qc.txt
+              head -n 2 qc.txt > post_topup_eddy_qc.txt
             fi
             rm ${file}.src.gz
           done
