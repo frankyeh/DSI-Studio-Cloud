@@ -193,8 +193,8 @@ jobs:
         run: |
           wget https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }} --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
