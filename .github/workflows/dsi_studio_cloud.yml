@@ -21,7 +21,7 @@ jobs:
     outputs:
       subjects: ${{ steps.data.outputs.subjects }}
       files: ${{ steps.data.outputs.files }}
-      dataset_description: ${{ steps.data.outputs.dataset_description }}
+      dataset_name: ${{ steps.data.outputs.dataset_name }}
       metrics: ${{ steps.data.outputs.metrics }}
     steps:
       - name: OpenNeuro
@@ -29,8 +29,9 @@ jobs:
         run: |
           # Process dataset_description.json
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
-          content=`cat dataset_description.json`
-          echo "dataset_description=$content" >> $GITHUB_OUTPUT
+          content=$(cat dataset_description.json)
+          name=$(echo "$content" | jq -r '.Name')
+          echo "dataset_name=$name" >> $GITHUB_OUTPUT
 
           # Get subjects
           SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ github.event.inputs.id }} --recursive | grep 'dwi' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
@@ -78,7 +79,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./${{ env.FILE }}.raw.src.gz
-          name: "${{ fromjson(needs.info.outputs.dataset_description).Name }}"
+          name: "${{ needs.info.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}     
       - name: Create Release
         if: failure()
@@ -86,7 +87,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ./${{ env.FILE }}.raw.src.gz
-          name: "${{ fromjson(needs.info.outputs.dataset_description).Name }}"
+          name: "${{ needs.info.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}   
           
   src_quality_check1:
@@ -123,7 +124,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: pre_topup_eddy_qc.txt 
-          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
+          name: "${{ needs.download_data.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}   
           
   topup_eddy:
@@ -183,7 +184,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ matrix.files }}.src.gz
-          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
+          name: "${{ needs.download_data.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}            
           
   src_quality_check2:
@@ -219,7 +220,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: post_topup_eddy_qc.txt 
-          name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
+          name: "${{ needs.topup_eddy.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}           
 
   reconstruction:
@@ -310,6 +311,6 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz
-          name: "${{ fromjson(needs.reconstruction.outputs.dataset_description).Name }}"
+          name: "${{ needs.reconstruction.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}          
      
