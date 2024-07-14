@@ -30,9 +30,6 @@ jobs:
           # Process dataset_description.json
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
           content=`cat dataset_description.json`
-          content="${content//'%'/'%25'}"
-          content="${content//$'\n'/'%0A'}"
-          content="${content//$'\r'/'%0D'}"
           echo "dataset_description=$content" >> $GITHUB_OUTPUT
 
           # Get subjects
