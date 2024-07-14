@@ -33,17 +33,19 @@ jobs:
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
           content="${content//$'\r'/'%0D'}"
-          echo "::set-output name=dataset_description::$content"  
+          echo "dataset_description=$content" >> $GITHUB_OUTPUT
 
           # Get subjects
           SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ github.event.inputs.id }} --recursive | grep 'dwi' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
           FILES=$(echo "$SUBJECTS" | tr '/' '_')
-          echo "::set-output name=subjects::$SUBJECTS"
-          echo "::set-output name=files::$FILES"
+          echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT
+          echo "files=$FILES" >> $GITHUB_OUTPUT
 
           metrics="${{ github.event.inputs.metrics }}"
           metrics=$(echo "[\"${metrics//,/\",\"}\"]")
-          echo "::set-output name=metrics::$metrics"
+          echo "metrics=$metrics" >> $GITHUB_OUTPUT
+
+          echo "OpenNeuro ${{ github.event.inputs.id }}" >> $GITHUB_STEP_SUMMARY
           
   download_data:
     name: NIFTI to SRC
