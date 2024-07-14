@@ -117,7 +117,7 @@ jobs:
             else
               head -n 2 qc.txt > pre_topup_eddy_qc.txt
             fi
-            rm ${file}.raw.src.gz
+            rm *.raw.src.gz
           done
           cat pre_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
 
@@ -217,7 +217,7 @@ jobs:
             else
               head -n 2 qc.txt > post_topup_eddy_qc.txt
             fi
-            rm ${file}.src.gz
+            rm *.raw.src.gz
           done
           cat post_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
       - name: Create Release
