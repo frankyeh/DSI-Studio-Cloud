@@ -176,7 +176,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ matrix.files }}.src.gz
-          name: "${{ fromjson(needs.download_data.outputs.dataset_description).Name }}"
+          name: "${{ needs.download_data.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}  
       - name: Create Release
         if: failure()
