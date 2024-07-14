@@ -60,8 +60,8 @@ jobs:
       - name: Check Files
         run: |
           FILE=$(echo ${{ matrix.subjects }} | tr '/' '_')
-          echo "FILE=$FILE" >> $GITHUB_ENV
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${FILE}.raw.src.gz; then
+          echo "file=$FILE" >> $GITHUB_ENV
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}_dwi.raw.src.gz; then
             echo "src_exists=true" >> $GITHUB_ENV
           else
             echo "src_exists=false" >> $GITHUB_ENV
@@ -72,13 +72,13 @@ jobs:
           aws s3 sync --no-sign-request --region eu-west-1 --exclude="*" --include="*dwi*" s3://openneuro.org/${{ github.event.inputs.id }}/${{ matrix.subjects }} ${{ github.event.inputs.id }}
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
           ./dsi-studio/dsi_studio --action=src --source=./${{ github.event.inputs.id }}/dwi
-          mv ./${{ github.event.inputs.id }}/dwi/*.src.gz ./${{ env.FILE }}.raw.src.gz
+          mv ./${{ github.event.inputs.id }}/dwi/*.src.gz ./${{ env.file }}_dwi.raw.src.gz
       - name: Create Release
         if: env.src_exists == 'false' 
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: ./${{ env.FILE }}.raw.src.gz
+          artifacts: ./${{ env.file }}_dwi.raw.src.gz
           name: "${{ needs.info.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}     
       - name: Create Release
@@ -86,7 +86,7 @@ jobs:
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: ./${{ env.FILE }}.raw.src.gz
+          artifacts: ./${{ env.file }}_dwi.raw.src.gz
           name: "${{ needs.info.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}   
           
@@ -110,7 +110,7 @@ jobs:
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for file in "${files[@]}"; do
-            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.raw.src.gz"
+            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}_dwi.raw.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=.
             if [ -f "pre_topup_eddy_qc.txt" ]; then
               sed -n '2p' qc.txt >> pre_topup_eddy_qc.txt
@@ -143,7 +143,7 @@ jobs:
     steps:
       - name: Check Files
         run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz; then
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.src.gz; then
             echo "file_exists=true" >> $GITHUB_ENV
           else
             echo "file_exists=false" >> $GITHUB_ENV
@@ -171,14 +171,14 @@ jobs:
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.raw.src.gz
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }}.src.gz ${{ github.event.inputs.src_param}}               
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.raw.src.gz
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }}_dwi.src.gz ${{ github.event.inputs.src_param}}               
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: ${{ matrix.files }}.src.gz
+          artifacts: ${{ matrix.files }}_dwi.src.gz
           name: "${{ needs.download_data.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}  
       - name: Create Release
@@ -186,7 +186,7 @@ jobs:
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
-          artifacts: ${{ matrix.files }}.src.gz
+          artifacts: ${{ matrix.files }}_dwi.src.gz
           name: "${{ needs.download_data.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}            
           
@@ -210,7 +210,7 @@ jobs:
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
           files=($(echo "${{ needs.topup_eddy.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for file in "${files[@]}"; do
-            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}.src.gz"
+            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}_dwi.src.gz"
             ./dsi-studio/dsi_studio --action=qc --source=.
             if [ -f "post_topup_eddy_qc.txt" ]; then
               sed -n '2p' qc.txt >> post_topup_eddy_qc.txt
@@ -243,8 +243,8 @@ jobs:
       - name: Check If Done
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.gqi.fib.gz || true
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.qsdr.fib.gz || true
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.gqi.fib.gz || true
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.qsdr.fib.gz || true
           if [ ! -f "${{ matrix.files }}.qsdr.fib.gz" ]; then
             echo "file_exists=false" >> $GITHUB_ENV
           else
@@ -253,22 +253,22 @@ jobs:
       - name: GQI and QSDR Reconstruction
         if: env.file_exists == 'false'
         run: |
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}.src.gz
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.gqi.fib.gz ${{ github.event.inputs.src_param}}  
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.src.gz
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}_dwi.gqi.fib.gz ${{ github.event.inputs.src_param}}  
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}.src.gz --output=${{ matrix.files }}_dwi.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
         with:
           allowUpdates: true
           artifacts: |
-            ${{ matrix.files }}.gqi.fib.gz
-            ${{ matrix.files }}.qsdr.fib.gz
+            ${{ matrix.files }}_dwi.gqi.fib.gz
+            ${{ matrix.files }}_dwi.qsdr.fib.gz
           name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
           tag: ${{ github.event.inputs.id }}    
       - name: Export Metrics
         if: ${{ github.event.inputs.metrics != '' }}
-        run: ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}          
+        run: ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}_dwi.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}          
       - name: Save Metrics
         if: ${{ github.event.inputs.metrics != '' }}
         uses: actions/upload-artifact@v2.2.4
