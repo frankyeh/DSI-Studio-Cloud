@@ -99,6 +99,8 @@ jobs:
         run: |
           if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/pre_topup_eddy_qc.txt; then
             echo "file_exists=true" >> $GITHUB_ENV
+            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/pre_topup_eddy_qc.txt
+            cat pre_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
           else
             echo "file_exists=false" >> $GITHUB_ENV
           fi
@@ -117,6 +119,7 @@ jobs:
             fi
             rm ${file}.raw.src.gz
           done
+          cat pre_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Create Release
         if: env.file_exists == 'false'
@@ -196,6 +199,8 @@ jobs:
         run: |
           if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/post_topup_eddy_qc.txt; then
             echo "file_exists=true" >> $GITHUB_ENV
+            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/post_topup_eddy_qc.txt
+            cat post_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
           else
             echo "file_exists=false" >> $GITHUB_ENV
           fi
@@ -214,6 +219,7 @@ jobs:
             fi
             rm ${file}.src.gz
           done
+          cat post_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
       - name: Create Release
         if: env.file_exists == 'false'
         uses: ncipollo/release-action@v1.10.0
