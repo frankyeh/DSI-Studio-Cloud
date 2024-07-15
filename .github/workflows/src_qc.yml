@@ -39,12 +39,20 @@ jobs:
           fi
       - name: Get Subject List
         if: env.file_exists == 'false'
-        run: |        
+        id: data
+        run: |
           SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
-
-          files=($(echo "$SUBJECTS" | tr ',' ' ' | tr -d '[]'))
+          echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT      
+      - name: Download and Extract DSI Studio
+        if: env.file_exists == 'false'
+        run: |
+          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio          
+      - name: Get Subject List
+        if: env.file_exists == 'false'
+        run: |        
+          files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_' | tr ',' ' ' | tr -d '[]'))
           for file in "${files[@]}"; do
+            echo "Processing $file"
             wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
             ./dsi-studio/dsi_studio --action=qc --source=.
             if [ -f "${{ inputs.src_list }}_qc.txt" ]; then
@@ -52,7 +60,7 @@ jobs:
             else
               head -n 2 qc.txt > ${{ inputs.src_list }}_qc.txt
             fi
-            rm *.${{ inputs.src_list }}
+            rm *.src.gz
           done
           cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
 
