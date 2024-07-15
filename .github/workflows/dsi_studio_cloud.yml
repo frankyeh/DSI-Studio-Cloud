@@ -50,7 +50,7 @@ jobs:
     needs: info
     name: Call NII to SRC
     with:
-      subjects: ${{ fromjson(needs.info.outputs.subjects) }}
+      subjects: ${{ needs.info.outputs.subjects }}
       dataset_id: ${{ github.event.inputs.id }} 
 
           
