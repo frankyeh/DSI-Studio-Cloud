@@ -1,20 +1,22 @@
 name: SRC QC
 
 on:
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
   workflow_call:
     inputs:
       src_list:
-        description: 'SRC List'
-        default: '${{ inputs.src_list }}'
+        description: 'SRC List (raw.src.gz or src.gz)'
+        default: 'raw.src.gz'
         required: true
         type: string
-      report:
-        description: 'Report File Name'
-        default: 'qc.txt'
-        required: true
-        type: string  
       dataset_id:
-        description: 'Dataset ID'
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
         required: true
         type: string
 jobs:
@@ -24,10 +26,10 @@ jobs:
     steps:     
       - name: Check Files
         run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.report }}; then
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.src_list }}_qc.txt; then
             echo "file_exists=true" >> $GITHUB_ENV
-            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.report }}
-            cat ${{ inputs.report }} >> $GITHUB_STEP_SUMMARY
+            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.src_list }}_qc.txt
+            cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
           else
             echo "file_exists=false" >> $GITHUB_ENV
           fi
@@ -39,19 +41,19 @@ jobs:
           for file in "${files[@]}"; do
             wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
             ./dsi-studio/dsi_studio --action=qc --source=.
-            if [ -f "${{ inputs.report }}" ]; then
-              sed -n '2p' qc.txt >> ${{ inputs.report }}
+            if [ -f "${{ inputs.src_list }}_qc.txt" ]; then
+              sed -n '2p' qc.txt >> ${{ inputs.src_list }}_qc.txt
             else
-              head -n 2 qc.txt > ${{ inputs.report }}
+              head -n 2 qc.txt > ${{ inputs.src_list }}_qc.txt
             fi
             rm *.${{ inputs.src_list }}
           done
-          cat ${{ inputs.report }} >> $GITHUB_STEP_SUMMARY
+          cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Create Release
         if: env.file_exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.report }}
+          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.src_list }}_qc.txt
         
