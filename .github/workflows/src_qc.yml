@@ -28,6 +28,8 @@ jobs:
     name: SRC Quality Check
     runs-on: ubuntu-20.04
     steps:     
+      - name: Checkout repository
+        uses: actions/checkout@v3
       - name: Check Files
         run: |
           if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.src_list }}_qc.txt; then
@@ -63,9 +65,6 @@ jobs:
             rm *.src.gz
           done
           cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
-      - name: Checkout repository
-        if: env.file_exists == 'false'
-        uses: actions/checkout@v3
       - name: Create Release
         if: env.file_exists == 'false'
         env:
