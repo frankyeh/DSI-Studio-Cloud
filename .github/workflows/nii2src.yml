@@ -1,4 +1,4 @@
-name: NII to SRC
+name: Step T1: NII to SRC
 
 on:
   workflow_dispatch:
