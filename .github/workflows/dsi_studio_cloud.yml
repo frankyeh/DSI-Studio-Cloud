@@ -54,6 +54,7 @@ jobs:
             echo "Release ${{ github.event.inputs.id }} already exists, skipping release creation."
           else
             gh release create ${{ github.event.inputs.id }} --title "$name" --notes "Processed data for dataset ${{ github.event.inputs.id }}"
+          fi
           
   download_data:
     uses: ./.github/workflows/nii2src.yml
