@@ -1,4 +1,4 @@
-name: TOPUP/EDDY
+name: Step T2 TOPUP/EDDY
 on:
   workflow_dispatch:
     inputs:
