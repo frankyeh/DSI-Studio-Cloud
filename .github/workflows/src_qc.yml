@@ -7,6 +7,10 @@ on:
         description: 'OpenNeuro Accession Number'
         default: ds001378
         required: true
+      src_list:
+        description: 'SRC List (raw.src.gz or src.gz)'
+        default: 'raw.src.gz'
+        required: true        
   workflow_call:
     inputs:
       src_list:
