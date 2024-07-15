@@ -38,6 +38,8 @@ jobs:
 
       - name: Upload Results
         if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
         run: |
           if ls ./*.src.gz 1> /dev/null 2>&1; then
             gh release upload "${{ inputs.dataset_id }}" ./*.src.gz
