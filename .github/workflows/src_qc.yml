@@ -1,0 +1,56 @@
+name: SRC QC
+
+on:
+  workflow_call:
+    inputs:
+      src_list:
+        description: 'SRC List'
+        default: '${{ inputs.src_list }}'
+        required: true
+        type: string
+      report:
+        description: 'Report File Name'
+        default: 'qc.txt'
+        required: true
+        type: string  
+      dataset_id:
+        description: 'Dataset ID'
+        required: true
+        type: string
+jobs:
+  src_quality_check:
+    name: SRC Quality Check
+    needs: download_data
+    runs-on: ubuntu-20.04
+    steps:     
+      - name: Check Files
+        run: |
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.report }}; then
+            echo "file_exists=true" >> $GITHUB_ENV
+            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.report }}
+            cat ${{ inputs.report }} >> $GITHUB_STEP_SUMMARY
+          else
+            echo "file_exists=false" >> $GITHUB_ENV
+          fi
+      - name: Quality Check
+        if: env.file_exists == 'false'
+        run: |        
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
+          files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
+          for file in "${files[@]}"; do
+            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
+            ./dsi-studio/dsi_studio --action=qc --source=.
+            if [ -f "${{ inputs.report }}" ]; then
+              sed -n '2p' qc.txt >> ${{ inputs.report }}
+            else
+              head -n 2 qc.txt > ${{ inputs.report }}
+            fi
+            rm *.${{ inputs.src_list }}
+          done
+          cat ${{ inputs.report }} >> $GITHUB_STEP_SUMMARY
+
+      - name: Create Release
+        if: env.file_exists == 'false'
+        run: |
+          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.report }}
+        
