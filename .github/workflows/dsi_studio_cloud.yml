@@ -50,7 +50,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ github.event.inputs.id }} --title "$name" --notes "Processed data for dataset ${{ github.event.inputs.id }}"
+          if gh release view ${{ github.event.inputs.id }} &> /dev/null; then
+            echo "Release ${{ github.event.inputs.id }} already exists, skipping release creation."
+          else
+            gh release create ${{ github.event.inputs.id }} --title "$name" --notes "Processed data for dataset ${{ github.event.inputs.id }}"
           
   download_data:
     uses: ./.github/workflows/nii2src.yml
