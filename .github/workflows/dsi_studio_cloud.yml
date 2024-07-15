@@ -59,7 +59,7 @@ jobs:
       - name: Call NII to SRC
         uses: ./.github/workflows/nii2src
         with:
-          subjects: ${{ fromjson(needs.info.outputs.subjects) }}
+          subjects: ${{ needs.info.outputs.subjects }}
           dataset_id: ${{ github.event.inputs.id }} 
           
   src_quality_check1:
