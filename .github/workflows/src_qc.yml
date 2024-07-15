@@ -43,7 +43,7 @@ jobs:
           SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
 
-          files=($(echo "$SUBJECTS" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
+          files=($(echo "$SUBJECTS" | tr ',' ' ' | tr -d '[]'))
           for file in "${files[@]}"; do
             wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
             ./dsi-studio/dsi_studio --action=qc --source=.
