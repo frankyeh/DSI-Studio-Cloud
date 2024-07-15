@@ -1,4 +1,4 @@
-name: SRC QC
+name: STEP T2a SRC QC
 
 on:
   workflow_dispatch:
