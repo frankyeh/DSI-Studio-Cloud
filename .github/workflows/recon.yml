@@ -42,7 +42,7 @@ jobs:
       - name: Check If Done
         run: |
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.qsdr.fib.gz; then
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.qsdr.fib.gz; then
             echo "file_exists=true" >> $GITHUB_ENV
           else
             echo "file_exists=false" >> $GITHUB_ENV
@@ -50,12 +50,12 @@ jobs:
       - name: GQI and QSDR Reconstruction
         if: env.file_exists == 'false'
         run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.src.gz; then
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.src.gz; then
             wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.src.gz
             ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.src.gz --output=${{ matrix.files }}_dwi.gqi.fib.gz ${{ github.event.inputs.src_param}}  
             ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.src.gz --output=${{ matrix.files }}_dwi.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
           else
-            echo "ERROR: no SRC file ${file}_dwi.src.gz for reconstruction " >&2
+            echo "ERROR: no SRC file ${{ matrix.files }}_dwi.src.gz for reconstruction " >&2
             exit 1
           fi
       - name: Create Release
