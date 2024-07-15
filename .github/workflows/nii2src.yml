@@ -23,7 +23,7 @@ jobs:
       - name: Process Subjects
         run: |
           subjects=($(echo "${{ inputs.subjects }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
-          for subject in $subjects; do
+          for subject in "${subjects[@]}"; do
             file=$(echo $subject | tr '/' '_')
             echo "Processing $file"
             if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.raw.src.gz; then
