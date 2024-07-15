@@ -1,0 +1,74 @@
+name: Create Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
+      metrics:
+        description: 'metrics to extract'
+        default: 'qa'
+        required: true        
+  workflow_call:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
+        type: string
+      metrics:
+        description: 'metrics to extract'
+        default: 'qa'
+        required: true        
+        type: string
+jobs:
+  create_database:
+    name: Create Database
+    runs-on: ubuntu-20.04
+    steps:     
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Check If Done
+        run: |
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz || true
+          if [ ! -f "${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz" ]; then
+            echo "file_exists=false" >> $GITHUB_ENV
+          else
+            echo "file_exists=true" >> $GITHUB_ENV
+          fi  
+      - name: Get Subject List
+        if: env.file_exists == 'false'
+        id: data
+        run: |
+          FILES=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | tr '/' '_' | tr '\n' ' ')
+          echo "files=$FILES" >> $GITHUB_OUTPUT      
+      - name: Download and Extract DSI Studio
+        if: env.file_exists == 'false'
+        run: |
+          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio          
+      - name: Get Subject List
+        if: env.file_exists == 'false'
+        run: |        
+          for file in "${env.files[@]}"; do
+            echo "Export metrics from $file"
+            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.qsdr.fib.gz"
+            ./dsi-studio/dsi_studio --action=exp --source=${file}_dwi.qsdr.fib.gz --export=${{inputs.metrics}}
+            rm *.fib.gz
+          done
+      - name: Database Construction
+        if: env.file_exists == 'false'
+        run: |        
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ inputs.dataset_id }} .
+          if [ -f participants.tsv ]; then
+            ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --demo=participants.tsv --output=${{ inputs.dataset_id }}.${{matrix.metrics}}.db.fib.gz
+          else
+            ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --output=${{ inputs.dataset_id }}.${{matrix.metrics}}.db.fib.gz
+          fi          
+      - name: Upload Release
+        if: env.file_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.dataset_id }}.${{matrix.metrics}}.db.fib.gz
