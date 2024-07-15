@@ -1,14 +1,17 @@
 name: NII to SRC
 
 on:
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
   workflow_call:
     inputs:
-      subjects:
-        description: 'Subjects List'
-        required: true
-        type: string
       dataset_id:
-        description: 'Dataset ID'
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
         required: true
         type: string
 
@@ -16,13 +19,17 @@ jobs:
   nii2src:
     runs-on: ubuntu-20.04
     steps:
+      - name: Get Subject List
+        id: data
+        run: |
+          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ github.event.inputs.id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT
       - name: Download and Extract DSI Studio
         run: |
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
-
       - name: Process Subjects
         run: |
-          subjects=($(echo "${{ inputs.subjects }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
+          subjects=($(echo "${{ steps.data.outputs.subjects }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for subject in "${subjects[@]}"; do
             file=$(echo $subject | tr '/' '_')
             echo "Processing $file"
