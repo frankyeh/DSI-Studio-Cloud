@@ -42,16 +42,17 @@ jobs:
         if: env.file_exists == 'false'
         id: data
         run: |
-          FILES=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | tr '/' '_' | tr '\n' ' ')
-          echo "files=$FILES" >> $GITHUB_OUTPUT      
+          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | tr '\n' ' ')
+          echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT      
       - name: Download and Extract DSI Studio
         if: env.file_exists == 'false'
         run: |
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio          
-      - name: Get Subject List
+      - name: Export Metrics
         if: env.file_exists == 'false'
         run: |        
-          for file in "${env.files[@]}"; do
+          files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_'))
+          for file in "${files[@]}"; do
             echo "Export metrics from $file"
             wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.qsdr.fib.gz"
             ./dsi-studio/dsi_studio --action=exp --source=${file}_dwi.qsdr.fib.gz --export=${{inputs.metrics}}
