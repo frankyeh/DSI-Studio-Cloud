@@ -20,7 +20,7 @@ jobs:
         run: |
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
 
-          subjects=$(echo "${{ inputs.subjects }}" | tr ',' '\n' | )
+          subjects=$(echo "${{ inputs.subjects }}" | tr ',' '\n')
           for subject in $subjects; do
             echo "Processing $file"
             if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.raw.src.gz; then
