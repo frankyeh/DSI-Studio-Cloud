@@ -1,0 +1,77 @@
+name: TOPUP/EDDY
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
+  workflow_call:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
+        type: string
+
+jobs:
+  info:
+    runs-on: ubuntu-20.04
+    outputs:
+      files: ${{ steps.data.outputs.files }}
+    steps:
+      - name: Get Subject List
+        id: data
+        run: |
+          # Get subjects
+          FILES=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | tr '/' '_' | jq -R -s -c 'split("\n")[:-1]')
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+  topup_eddy:
+    name: TOPUP/EDDY
+    needs: info
+    outputs:
+      files: ${{ needs.info.outputs.files }} 
+    strategy:
+      matrix:
+        files: ${{ fromjson(needs.info.outputs.files) }}
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Check Files
+        run: |
+          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.src.gz; then
+            echo "file_exists=true" >> $GITHUB_ENV
+          else
+            echo "file_exists=false" >> $GITHUB_ENV
+          fi
+      - name: Cache FSL environment
+        if: env.file_exists == 'false'
+        id: cache-fsl
+        uses: actions/cache@v3
+        with:
+          path: /opt/fsl
+          key: ${{ runner.os }}-fsl
+      - name: Prepare FSL environment
+        if: steps.cache-fsl.outputs.cache-hit != 'true' && env.file_exists == 'false'
+        run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
+      - name: Eddy
+        if: env.file_exists == 'false'
+        run: |
+          export OS="Linux"
+          export FSLDIR="/opt/fsl"
+          export FSL_DIR="$FSLDIR"
+          export FSLOUTPUTTYPE="NIFTI_GZ"
+          export FSLMULTIFILEQUIT="TRUE"
+          export LD_LIBRARY_PATH="$FSLDIR/lib:$LD_LIBRARY_PATH"
+          export FSLTCLSH="/usr/bin/tclsh"
+          export FSLWISH="/usr/bin/wish"
+          export PATH="$FSLDIR/bin:$PATH"
+          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
+          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.raw.src.gz
+          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }}_dwi.src.gz ${{ github.event.inputs.src_param}}               
+      - name: Create Release
+        if: env.file_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ inputs.dataset_id }}" ${{ matrix.files }}_dwi.src.gz    
