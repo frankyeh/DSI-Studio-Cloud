@@ -41,7 +41,7 @@ jobs:
         if: env.file_exists == 'false'
         id: data
         run: |
-          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u)
           echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT      
       - name: Download and Extract DSI Studio
         if: env.file_exists == 'false'
@@ -50,7 +50,7 @@ jobs:
       - name: Get Subject List
         if: env.file_exists == 'false'
         run: |        
-          files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_' | tr ',' ' ' | tr -d '[]'))
+          files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_'))
           for file in "${files[@]}"; do
             echo "Processing $file"
             wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
@@ -63,7 +63,9 @@ jobs:
             rm *.src.gz
           done
           cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
-
+      - name: Checkout repository
+        if: env.file_exists == 'false'
+        uses: actions/checkout@v3
       - name: Create Release
         if: env.file_exists == 'false'
         env:
