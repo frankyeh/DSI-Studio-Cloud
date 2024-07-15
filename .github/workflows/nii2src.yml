@@ -30,8 +30,9 @@ jobs:
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
       - name: Process Subjects
         run: |
-          files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_'))
-          for file in "${files[@]}"; do
+          subjects=($(echo "${{ steps.data.outputs.subjects }}"))
+          for subject in "${subjects[@]}"; do
+            file=$(echo $subject | tr '/' '_')
             echo "Processing $file"
             if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.raw.src.gz; then
               echo "$file exists."
