@@ -29,7 +29,7 @@ jobs:
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
       - name: Process Subjects
         run: |
-          subjects=($(echo "${{ steps.data.outputs.subjects }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
+          subjects=($(echo "${{ steps.data.outputs.subjects }}" | tr ',' ' ' | tr -d '[]'))
           for subject in "${subjects[@]}"; do
             file=$(echo $subject | tr '/' '_')
             echo "Processing $file"
