@@ -44,6 +44,7 @@ jobs:
           echo "metrics=$metrics" >> $GITHUB_OUTPUT
 
           echo "OpenNeuro ${{ github.event.inputs.id }}" >> $GITHUB_STEP_SUMMARY
+          gh release create ${{ github.event.inputs.id }} --title $name --notes "Processed data for dataset ${{ github.event.inputs.id }}"
           
   download_data:
     uses: ./.github/workflows/nii2src.yml
@@ -52,47 +53,15 @@ jobs:
     with:
       subjects: ${{ needs.info.outputs.subjects }}
       dataset_id: ${{ github.event.inputs.id }} 
-
-          
+      
   src_quality_check1:
-    name: Raw SRC Quality Check
+    uses: ./.github/workflows/src_qc.yml
     needs: download_data
-    runs-on: ubuntu-20.04
-    steps:     
-      - name: Check Files
-        run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/pre_topup_eddy_qc.txt; then
-            echo "file_exists=true" >> $GITHUB_ENV
-            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/pre_topup_eddy_qc.txt
-            cat pre_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
-          else
-            echo "file_exists=false" >> $GITHUB_ENV
-          fi
-      - name: Quality Check
-        if: env.file_exists == 'false'
-        run: |        
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
-          files=($(echo "${{ needs.download_data.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
-          for file in "${files[@]}"; do
-            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}_dwi.raw.src.gz"
-            ./dsi-studio/dsi_studio --action=qc --source=.
-            if [ -f "pre_topup_eddy_qc.txt" ]; then
-              sed -n '2p' qc.txt >> pre_topup_eddy_qc.txt
-            else
-              head -n 2 qc.txt > pre_topup_eddy_qc.txt
-            fi
-            rm *.raw.src.gz
-          done
-          cat pre_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
-
-      - name: Create Release
-        if: env.file_exists == 'false'
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: pre_topup_eddy_qc.txt 
-          name: "${{ needs.download_data.outputs.dataset_name }}"
-          tag: ${{ github.event.inputs.id }}   
+    name: Call NII to SRC
+    with:
+      src_list: 'raw.src.gz'
+      report: 'pre_topup_eddy_qc.txt'
+      dataset_id: ${{ github.event.inputs.id }}  
           
   topup_eddy:
     name: TOPUP/EDDY
@@ -155,43 +124,14 @@ jobs:
           tag: ${{ github.event.inputs.id }}            
           
   src_quality_check2:
-    name: Post TOPUP/EDDY SRC Quality Check
+    uses: ./.github/workflows/src_qc.yml
     needs: topup_eddy
-    runs-on: ubuntu-20.04
-    steps:       
-      - name: Check Files
-        run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/post_topup_eddy_qc.txt; then
-            echo "file_exists=true" >> $GITHUB_ENV
-            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/post_topup_eddy_qc.txt
-            cat post_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
-          else
-            echo "file_exists=false" >> $GITHUB_ENV
-          fi
-      - name: Quality Check
-        if: env.file_exists == 'false'
-        run: |        
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip  
-          files=($(echo "${{ needs.topup_eddy.outputs.files }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
-          for file in "${files[@]}"; do
-            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${file}_dwi.src.gz"
-            ./dsi-studio/dsi_studio --action=qc --source=.
-            if [ -f "post_topup_eddy_qc.txt" ]; then
-              sed -n '2p' qc.txt >> post_topup_eddy_qc.txt
-            else
-              head -n 2 qc.txt > post_topup_eddy_qc.txt
-            fi
-            rm *.src.gz
-          done
-          cat post_topup_eddy_qc.txt >> $GITHUB_STEP_SUMMARY
-      - name: Create Release
-        if: env.file_exists == 'false'
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: post_topup_eddy_qc.txt 
-          name: "${{ needs.topup_eddy.outputs.dataset_name }}"
-          tag: ${{ github.event.inputs.id }}           
+    name: SRC Quality Check
+    with:
+      src_list: 'src.gz'
+      report: 'post_topup_eddy_qc.txt'
+      dataset_id: ${{ github.event.inputs.id }} 
+           
 
   reconstruction:
     name: SRC to FIB
