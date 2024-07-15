@@ -22,7 +22,7 @@ jobs:
 
       - name: Process Subjects
         run: |
-          subjects=$(echo "${{ inputs.subjects }}" | tr ',' '\n')
+          subjects=($(echo "${{ inputs.subjects }}" | tr ',' ' ' | tr ']' ' ' | tr '[' ' '))
           for subject in $subjects; do
             file=$(echo $subject | tr '/' '_')
             echo "Processing $file"
