@@ -1,4 +1,4 @@
-name: Reconstruction
+name: STEP T2 Reconstruction
 
 on:
   workflow_dispatch:
