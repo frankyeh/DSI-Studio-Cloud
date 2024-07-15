@@ -11,11 +11,6 @@ jobs:
   info:
     name: Download OpenNeuro
     runs-on: ubuntu-20.04
-    outputs:
-      subjects: ${{ steps.data.outputs.subjects }}
-      files: ${{ steps.data.outputs.files }}
-      dataset_name: ${{ steps.data.outputs.dataset_name }}
-      metrics: ${{ steps.data.outputs.metrics }}
     steps:
       - name: OpenNeuro
         id: data
@@ -25,17 +20,6 @@ jobs:
           content=$(cat dataset_description.json)
           name=$(echo "$content" | jq -r '.Name')
           echo "dataset_name=$name" >> $GITHUB_OUTPUT
-
-          # Get subjects
-          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
-          FILES=$(echo "$SUBJECTS" | tr '/' '_')
-          echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT
-          echo "files=$FILES" >> $GITHUB_OUTPUT
-
-          metrics="${{ github.event.inputs.metrics }}"
-          metrics=$(echo "[\"${metrics//,/\",\"}\"]")
-          echo "metrics=$metrics" >> $GITHUB_OUTPUT
-
           echo "OpenNeuro ${{ inputs.dataset_id }}" >> $GITHUB_STEP_SUMMARY
       - name: Checkout repository
         uses: actions/checkout@v3
