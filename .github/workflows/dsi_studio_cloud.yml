@@ -54,7 +54,6 @@ jobs:
     needs: info
     name: Call NII to SRC
     with:
-      subjects: ${{ needs.info.outputs.subjects }}
       dataset_id: ${{ inputs.dataset_id }} 
       
   src_quality_check1:
@@ -90,6 +89,10 @@ jobs:
   database_construction:
     uses: ./.github/workflows/create_db.yml
     needs: reconstruction
+    strategy:
+      matrix:
+          metrics: ['qa','dti_fa']
     name: Create Database
     with:
+      metrics: ${{ matrix.metrics}}
       dataset_id: ${{ inputs.dataset_id }}
