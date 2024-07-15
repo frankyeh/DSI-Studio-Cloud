@@ -22,14 +22,14 @@ jobs:
       - name: Get Subject List
         id: data
         run: |
-          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u)
           echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT
       - name: Download and Extract DSI Studio
         run: |
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
       - name: Process Subjects
         run: |
-          files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_' | tr ',' ' ' | tr -d '[]'))
+          files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_'))
           for file in "${files[@]}"; do
             echo "Processing $file"
             if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.raw.src.gz; then
@@ -41,7 +41,8 @@ jobs:
               mv ./**/*.src.gz .
             fi
           done
-
+      - name: Checkout repository
+        uses: actions/checkout@v3
       - name: Upload Results
         if: ${{ always() }}
         env:
