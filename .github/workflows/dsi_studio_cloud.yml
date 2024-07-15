@@ -26,8 +26,6 @@ jobs:
     steps:
       - name: OpenNeuro
         id: data
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Process dataset_description.json
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
@@ -46,6 +44,11 @@ jobs:
           echo "metrics=$metrics" >> $GITHUB_OUTPUT
 
           echo "OpenNeuro ${{ github.event.inputs.id }}" >> $GITHUB_STEP_SUMMARY
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh release create ${{ github.event.inputs.id }} --title $name --notes "Processed data for dataset ${{ github.event.inputs.id }}"
           
   download_data:
