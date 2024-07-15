@@ -57,7 +57,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Call NII to SRC
-        uses: frankyeh/DSI-Studio-Cloud/.github/workflows/nii2src.yml@main
+        uses: ./.github/workflows/nii2src.yml
         with:
           subjects: ${{ needs.info.outputs.subjects }}
           dataset_id: ${{ github.event.inputs.id }} 
