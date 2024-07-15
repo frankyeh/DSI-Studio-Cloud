@@ -48,8 +48,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          gh release create ${{ github.event.inputs.id }} --title $name --notes "Processed data for dataset ${{ github.event.inputs.id }}"
+          gh release create ${{ github.event.inputs.id }} --title "$name" --notes "Processed data for dataset ${{ github.event.inputs.id }}"
           
   download_data:
     uses: ./.github/workflows/nii2src.yml
