@@ -17,6 +17,9 @@ on:
 jobs:
   nii2src:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        batch: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -30,7 +33,7 @@ jobs:
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
       - name: Process Subjects
         run: |
-          subjects=($(echo "${{ steps.data.outputs.subjects }}"))
+          subjects=($(echo "${{ steps.data.outputs.subjects }}" | tr ' ' '\n' | sed -n "$(( (${matrix.batch} - 1) * $((${#subjects[@]} / 8)) + 1 )), $(( ${matrix.batch} * $((${#subjects[@]} / 8)) )) p"))
           for subject in "${subjects[@]}"; do
             file=$(echo $subject | tr '/' '_')
             echo "Processing $file"
