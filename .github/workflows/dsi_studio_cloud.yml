@@ -46,10 +46,11 @@ jobs:
           echo "OpenNeuro ${{ github.event.inputs.id }}" >> $GITHUB_STEP_SUMMARY
           
   download_data:
-    name: Call NII to SRC
     uses: ./.github/workflows/nii2src.yml
+    needs: info
+    name: Call NII to SRC
     with:
-      subjects: ${{ needs.info.outputs.subjects }}
+      subjects: ${{ fromjson(needs.info.outputs.subjects) }}
       dataset_id: ${{ github.event.inputs.id }} 
 
           
@@ -95,13 +96,13 @@ jobs:
           
   topup_eddy:
     name: TOPUP/EDDY
-    needs: download_data
+    needs: [info,download_data]
     outputs:
-      files: ${{ needs.download_data.outputs.files }}
-      dataset_description: ${{ needs.download_data.outputs.dataset_description }}   
+      files: ${{ needs.info.outputs.files }}
+      dataset_description: ${{ needs.info.outputs.dataset_description }}   
     strategy:
       matrix:
-        files: ${{ fromjson(needs.download_data.outputs.files) }}
+        files: ${{ fromjson(needs.info.outputs.files) }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check Files
@@ -142,7 +143,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ matrix.files }}_dwi.src.gz
-          name: "${{ needs.download_data.outputs.dataset_name }}"
+          name: "${{ needs.info.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}  
       - name: Create Release
         if: failure()
@@ -150,7 +151,7 @@ jobs:
         with:
           allowUpdates: true
           artifacts: ${{ matrix.files }}_dwi.src.gz
-          name: "${{ needs.download_data.outputs.dataset_name }}"
+          name: "${{ needs.info.outputs.dataset_name }}"
           tag: ${{ github.event.inputs.id }}            
           
   src_quality_check2:
