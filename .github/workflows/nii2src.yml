@@ -1,0 +1,38 @@
+name: NII to SRC
+
+on:
+  workflow_call:
+    inputs:
+      subjects:
+        description: 'Subjects List'
+        required: true
+        type: string
+      dataset_id:
+        description: 'Dataset ID'
+        required: true
+        type: string
+
+jobs:
+  process:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Download Dataset
+        run: |
+          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
+
+          subjects=$(echo "${{ inputs.subjects }}" | tr ',' '\n' | )
+          for subject in $subjects; do
+            echo "Processing $file"
+            if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.raw.src.gz; then
+              echo "$file exists."
+            else
+              echo "Downloading and processing $subject"
+              file=$(echo $subject | tr '/' '_')
+              aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi.*" s3://openneuro.org/${{ inputs.dataset_id }}/$subject $subject
+              ./dsi-studio/dsi_studio --action=src --source=./$subject/dwi
+              mv ./**/*.src.gz .
+            fi
+          done
+          gh release upload "${{ inputs.dataset_id }}" ./*.src.gz
+          
+          
