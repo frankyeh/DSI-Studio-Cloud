@@ -33,7 +33,7 @@ jobs:
       - name: Check Files
         run: |
           if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.src_list }}_qc.txt; then
-            echo "file_exists=true" >> $GITHUB_ENV
+           ${{ matrix.files }} echo "file_exists=true" >> $GITHUB_ENV
             wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.src_list }}_qc.txt
             cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
           else
@@ -55,14 +55,20 @@ jobs:
           files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_'))
           for file in "${files[@]}"; do
             echo "Processing $file"
-            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
-            ./dsi-studio/dsi_studio --action=qc --source=.
-            if [ -f "${{ inputs.src_list }}_qc.txt" ]; then
-              sed -n '2p' qc.txt >> ${{ inputs.src_list }}_qc.txt
+            url="https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
+            if curl --head --silent --fail $url; then
+              wget -q $url
+              ./dsi-studio/dsi_studio --action=qc --source=.
+              if [ -f "${{ inputs.src_list }}_qc.txt" ]; then
+                sed -n '2p' qc.txt >> ${{ inputs.src_list }}_qc.txt
+              else
+                head -n 2 qc.txt > ${{ inputs.src_list }}_qc.txt
+              fi
+              rm *.src.gz
             else
-              head -n 2 qc.txt > ${{ inputs.src_list }}_qc.txt
+              echo "ERROR: cannot find SRC file $url" >&2
+              exit 1
             fi
-            rm *.src.gz
           done
           cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
       - name: Create Release
