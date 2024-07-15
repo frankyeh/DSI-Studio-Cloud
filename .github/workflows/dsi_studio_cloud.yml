@@ -46,7 +46,7 @@ jobs:
           if gh release view ${{ inputs.dataset_id }} &> /dev/null; then
             echo "Release ${{ inputs.dataset_id }} already exists, skipping release creation."
           else
-            gh release create ${{ inputs.dataset_id }} --title ${{ steps.data.outputs.dataset_name }} --notes "Processed data for dataset ${{ inputs.dataset_id }}"
+            gh release create ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "Processed data for dataset ${{ inputs.dataset_id }}"
           fi
           
   download_data:
