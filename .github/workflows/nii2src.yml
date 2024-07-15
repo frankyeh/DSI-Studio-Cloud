@@ -1,8 +1,8 @@
-name: Step T1: NII to SRC
+name: Step T1 NII to SRC
 
 on:
   workflow_dispatch:
-    inputs:
+    input
       dataset_id:
         description: 'OpenNeuro Accession Number'
         default: ds001378
