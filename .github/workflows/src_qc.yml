@@ -20,7 +20,6 @@ on:
 jobs:
   src_quality_check:
     name: SRC Quality Check
-    needs: download_data
     runs-on: ubuntu-20.04
     steps:     
       - name: Check Files
