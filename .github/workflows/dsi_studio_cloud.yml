@@ -2,18 +2,11 @@ name: DSI Studio Cloud
 on: 
   workflow_dispatch:
     inputs:
-      id:
+      dataset_id:
         description: 'OpenNeuro Accession Number'
         default: ds001378
         required: true
-      src_param:
-        required: false
-        default: ''
-        description: 'Other Reconstruction Parameters'
-      metrics:
-        required: false
-        default: qa,dti_fa
-        description: 'Metrics for database'
+      
 jobs:    
   info:
     name: Download OpenNeuro
@@ -28,13 +21,13 @@ jobs:
         id: data
         run: |
           # Process dataset_description.json
-          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ github.event.inputs.id }} .
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ inputs.dataset_id }} .
           content=$(cat dataset_description.json)
           name=$(echo "$content" | jq -r '.Name')
           echo "dataset_name=$name" >> $GITHUB_OUTPUT
 
           # Get subjects
-          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ github.event.inputs.id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | jq -R -s -c 'split("\n")[:-1]')
           FILES=$(echo "$SUBJECTS" | tr '/' '_')
           echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT
           echo "files=$FILES" >> $GITHUB_OUTPUT
@@ -43,17 +36,17 @@ jobs:
           metrics=$(echo "[\"${metrics//,/\",\"}\"]")
           echo "metrics=$metrics" >> $GITHUB_OUTPUT
 
-          echo "OpenNeuro ${{ github.event.inputs.id }}" >> $GITHUB_STEP_SUMMARY
+          echo "OpenNeuro ${{ inputs.dataset_id }}" >> $GITHUB_STEP_SUMMARY
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view ${{ github.event.inputs.id }} &> /dev/null; then
-            echo "Release ${{ github.event.inputs.id }} already exists, skipping release creation."
+          if gh release view ${{ inputs.dataset_id }} &> /dev/null; then
+            echo "Release ${{ inputs.dataset_id }} already exists, skipping release creation."
           else
-            gh release create ${{ github.event.inputs.id }} --title "$name" --notes "Processed data for dataset ${{ github.event.inputs.id }}"
+            gh release create ${{ inputs.dataset_id }} --title "$name" --notes "Processed data for dataset ${{ inputs.dataset_id }}"
           fi
           
   download_data:
@@ -62,7 +55,7 @@ jobs:
     name: Call NII to SRC
     with:
       subjects: ${{ needs.info.outputs.subjects }}
-      dataset_id: ${{ github.event.inputs.id }} 
+      dataset_id: ${{ inputs.dataset_id }} 
       
   src_quality_check1:
     uses: ./.github/workflows/src_qc.yml
@@ -70,68 +63,14 @@ jobs:
     name: Call NII to SRC
     with:
       src_list: 'raw.src.gz'
-      report: 'pre_topup_eddy_qc.txt'
-      dataset_id: ${{ github.event.inputs.id }}  
+      dataset_id: ${{ inputs.dataset_id }}  
           
   topup_eddy:
-    name: TOPUP/EDDY
-    needs: [info,download_data]
-    outputs:
-      files: ${{ needs.info.outputs.files }}
-      dataset_description: ${{ needs.info.outputs.dataset_description }}   
-    strategy:
-      matrix:
-        files: ${{ fromjson(needs.info.outputs.files) }}
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Check Files
-        run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.src.gz; then
-            echo "file_exists=true" >> $GITHUB_ENV
-          else
-            echo "file_exists=false" >> $GITHUB_ENV
-          fi
-      - name: Cache FSL environment
-        if: env.file_exists == 'false'
-        id: cache-fsl
-        uses: actions/cache@v3
-        with:
-          path: /opt/fsl
-          key: ${{ runner.os }}-fsl
-      - name: Prepare FSL environment
-        if: steps.cache-fsl.outputs.cache-hit != 'true' && env.file_exists == 'false'
-        run: curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos7_64.tar.gz | tar zxv --no-same-owner -C /opt --exclude='fsl/doc' --exclude='fsl/refdoc' --exclude='fsl/python/oxford_asl' --exclude='fsl/data/possum' --exclude='fsl/data/first' --exclude='fsl/data/mist' --exclude='fsl/data/atlases' --exclude='fsl/data/xtract_data' --exclude='fsl/extras/doc' --exclude='fsl/extras/man' --exclude='fsl/extras/src' --exclude='fsl/src'
-      - name: Eddy
-        if: env.file_exists == 'false'
-        run: |
-          export OS="Linux"
-          export FSLDIR="/opt/fsl"
-          export FSL_DIR="$FSLDIR"
-          export FSLOUTPUTTYPE="NIFTI_GZ"
-          export FSLMULTIFILEQUIT="TRUE"
-          export LD_LIBRARY_PATH="$FSLDIR/lib:$LD_LIBRARY_PATH"
-          export FSLTCLSH="/usr/bin/tclsh"
-          export FSLWISH="/usr/bin/wish"
-          export PATH="$FSLDIR/bin:$PATH"
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.raw.src.gz
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }}_dwi.src.gz ${{ github.event.inputs.src_param}}               
-      - name: Create Release
-        if: env.file_exists == 'false'
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: ${{ matrix.files }}_dwi.src.gz
-          name: "${{ needs.info.outputs.dataset_name }}"
-          tag: ${{ github.event.inputs.id }}  
-      - name: Create Release
-        if: failure()
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: ${{ matrix.files }}_dwi.src.gz
-          name: "${{ needs.info.outputs.dataset_name }}"
-          tag: ${{ github.event.inputs.id }}            
+    uses: ./.github/workflows/topup_eddy.yml
+    needs: download_data
+    name: Preprocess SRC
+    with:
+      dataset_id: ${{ inputs.dataset_id }}             
           
   src_quality_check2:
     uses: ./.github/workflows/src_qc.yml
@@ -139,98 +78,18 @@ jobs:
     name: SRC Quality Check
     with:
       src_list: 'src.gz'
-      report: 'post_topup_eddy_qc.txt'
-      dataset_id: ${{ github.event.inputs.id }} 
-           
+      dataset_id: ${{ inputs.dataset_id }} 
 
   reconstruction:
-    name: SRC to FIB
+    uses: ./.github/workflows/recon.yml
     needs: topup_eddy
-    outputs:
-      files: ${{ needs.topup_eddy.outputs.files }}
-      dataset_description: ${{ needs.topup_eddy.outputs.dataset_description }}    
-    strategy:
-      matrix:
-        files: ${{ fromjson(needs.topup_eddy.outputs.files) }}
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Check If Done
-        run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.gqi.fib.gz || true
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.qsdr.fib.gz || true
-          if [ ! -f "${{ matrix.files }}_dwi.qsdr.fib.gz" ]; then
-            echo "file_exists=false" >> $GITHUB_ENV
-          else
-            echo "file_exists=true" >> $GITHUB_ENV
-          fi
-      - name: GQI and QSDR Reconstruction
-        if: env.file_exists == 'false'
-        run: |
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ matrix.files }}_dwi.src.gz
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.src.gz --output=${{ matrix.files }}_dwi.gqi.fib.gz ${{ github.event.inputs.src_param}}  
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.src.gz --output=${{ matrix.files }}_dwi.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
-      - name: Create Release
-        if: env.file_exists == 'false'
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: |
-            ${{ matrix.files }}_dwi.gqi.fib.gz
-            ${{ matrix.files }}_dwi.qsdr.fib.gz
-          name: "${{ fromjson(needs.topup_eddy.outputs.dataset_description).Name }}"
-          tag: ${{ github.event.inputs.id }}    
-      - name: Export Metrics
-        if: ${{ github.event.inputs.metrics != '' }}
-        run: ./dsi-studio/dsi_studio --action=exp --source=${{ matrix.files }}_dwi.qsdr.fib.gz --export=${{ github.event.inputs.metrics }}          
-      - name: Save Metrics
-        if: ${{ github.event.inputs.metrics != '' }}
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: ${{ github.event.inputs.id }}_metrics
-          path: ./*.nii.gz
+    name: SRC to FIB
+    with:
+      dataset_id: ${{ inputs.dataset_id }}
           
   database_construction:
-    if: ${{ github.event.inputs.metrics != '' }}
+    uses: ./.github/workflows/create_db.yml
+    needs: reconstruction
     name: Create Database
-    needs: [info, reconstruction]
-    outputs:
-      files: ${{ needs.metrics.outputs.files }}
-      dataset_description: ${{ needs.metrics.outputs.dataset_description }}    
-    strategy:
-      matrix:
-        metrics: ${{ fromJson(needs.info.outputs.metrics) }}
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Check If Done
-        run: |
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ github.event.inputs.id }}/${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz || true
-          if [ ! -f "${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz" ]; then
-            echo "file_exists=false" >> $GITHUB_ENV
-          else
-            echo "file_exists=true" >> $GITHUB_ENV
-          fi
-      - name: Prepare Metrics
-        if: env.file_exists == 'false'
-        uses: actions/download-artifact@v3.0.0
-        with:
-          name: ${{ github.event.inputs.id }}_metrics
-      - name: Database Construction
-        if: env.file_exists == 'false'
-        run: |        
-          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ github.event.inputs.id }} .
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          if [ -f participants.tsv ]; then
-            ./dsi-studio/dsi_studio --action=atl --source=*.${{matrix.metrics}}.nii.gz --cmd=db --demo=participants.tsv --output=${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz
-          else
-            ./dsi-studio/dsi_studio --action=atl --source=*.${{matrix.metrics}}.nii.gz --cmd=db --output=${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz
-          fi
-      - name: Create Release
-        if: env.file_exists == 'false'
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          allowUpdates: true
-          artifacts: ${{ github.event.inputs.id }}.${{matrix.metrics}}.db.fib.gz
-          name: "${{ needs.reconstruction.outputs.dataset_name }}"
-          tag: ${{ github.event.inputs.id }}          
-     
+    with:
+      dataset_id: ${{ inputs.dataset_id }}
