@@ -22,7 +22,7 @@ jobs:
       - name: Get Subject List
         id: data
         run: |
-          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u)
+          SUBJECTS=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | tr '\n' ' ')
           echo "subjects=$SUBJECTS" >> $GITHUB_OUTPUT
       - name: Download and Extract DSI Studio
         run: |
