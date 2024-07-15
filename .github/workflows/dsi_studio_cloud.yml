@@ -54,10 +54,8 @@ jobs:
       files: ${{ needs.info.outputs.files }}
       dataset_description: ${{ needs.info.outputs.dataset_description }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
       - name: Call NII to SRC
-        uses: ./.github/workflows/nii2src.yml
+        uses: ./.github/workflows/nii2src
         with:
           subjects: ${{ fromjson(needs.info.outputs.subjects) }}
           dataset_id: ${{ github.event.inputs.id }} 
