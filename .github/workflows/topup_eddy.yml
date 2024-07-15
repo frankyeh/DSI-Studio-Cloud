@@ -68,8 +68,15 @@ jobs:
           export FSLWISH="/usr/bin/wish"
           export PATH="$FSLDIR/bin:$PATH"
           curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.raw.src.gz
-          ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }}_dwi.src.gz ${{ github.event.inputs.src_param}}               
+          url="https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.raw.src.gz"
+          if curl --head --silent --fail $url; then
+            wget -q $url
+            ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${{ matrix.files }}_dwi.src.gz ${{ github.event.inputs.src_param}}               
+          else
+            echo "ERROR: no SRC file $url for topup eddy " >&2
+            exit 1
+          fi
+          
       - name: Create Release
         if: env.file_exists == 'false'
         env:
