@@ -1,4 +1,4 @@
-name: Create Database
+name: STEP C1 Create Database
 
 on:
   workflow_dispatch:
