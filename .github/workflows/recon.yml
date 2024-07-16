@@ -16,51 +16,40 @@ on:
         type: string
 
 jobs:
-  info:
-    runs-on: ubuntu-20.04
-    outputs:
-      files: ${{ steps.data.outputs.files }}
-    steps:
-      - name: Get Subject List
-        id: data
-        run: |
-          # Get subjects
-          FILES=$(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | grep 'nii.gz' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u | tr '/' '_' | jq -R -s -c 'split("\n")[:-1]')
-          echo "files=$FILES" >> $GITHUB_OUTPUT
   reconstruction:
     name: SRC to FIB
-    needs: info
-    outputs:
-      files: ${{ needs.info.outputs.files }}
     strategy:
       matrix:
-        files: ${{ fromjson(needs.info.outputs.files) }}
+        batch: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Check If Done
-        run: |
-          curl -sSLO "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" && unzip -q *.zip
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.qsdr.fib.gz; then
-            echo "file_exists=true" >> $GITHUB_ENV
-          else
-            echo "file_exists=false" >> $GITHUB_ENV
-          fi
       - name: GQI and QSDR Reconstruction
-        if: env.file_exists == 'false'
-        run: |
-          if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.src.gz; then
-            wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ matrix.files }}_dwi.src.gz
-            ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.src.gz --output=${{ matrix.files }}_dwi.gqi.fib.gz ${{ github.event.inputs.src_param}}  
-            ./dsi-studio/dsi_studio --action=rec --source=${{ matrix.files }}_dwi.src.gz --output=${{ matrix.files }}_dwi.qsdr.fib.gz --method=7  ${{ github.event.inputs.src_param}}
-          else
-            echo "ERROR: no SRC file ${{ matrix.files }}_dwi.src.gz for reconstruction " >&2
-            exit 1
-          fi
-      - name: Create Release
-        if: env.file_exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ inputs.dataset_id }}" *.fib.gz  
+        run: |
+          curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio  
+          subjects=($(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | grep 'nii.gz' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u ))
+          for (( i=${{ matrix.batch }}; i< ${#subjects[@]}; i+=16 )); do        
+            subject=${subjects[i]}
+            file=$(echo $subject | tr '/' '_')
+            if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.qsdr.fib.gz; then
+              echo "${file}_dwi.qsdr.fib.gz exists, skip"
+            else
+              url="https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.src.gz"
+              echo "download ${url} for reconstruction"
+              if curl --head --silent --fail $url; then
+                wget -q $url
+                ./dsi-studio/dsi_studio --action=rec --source=${file}_dwi.src.gz --output=${file}_dwi.gqi.fib.gz
+                ./dsi-studio/dsi_studio --action=rec --source=${file}_dwi.src.gz --output=${file}_dwi.qsdr.fib.gz --method=7
+                gh release upload "${{ inputs.dataset_id }}" *.fib.gz  
+                rm *.src.gz
+                rm *.fib.gz
+              else
+                echo "ERROR: cannot find SRC file $url for reconstruction" >&2
+                exit 1
+              fi
+            fi
+          done
  
