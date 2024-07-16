@@ -36,9 +36,13 @@ jobs:
               echo "$file exists."
             else
               echo "Downloading and processing $subject"
-              aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi.*" s3://openneuro.org/${{ inputs.dataset_id }}/$subject $subject
-              ./dsi-studio/dsi_studio --action=src --source=./$subject/dwi
+              aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi*" s3://openneuro.org/${{ inputs.dataset_id }}/$subject $subject
+              ./dsi-studio/dsi_studio --action=src --bids=1 --source=./$subject/dwi
               mv ./$subject/dwi/*.src.gz ./${file}_dwi.raw.src.gz
+              if ls ./$SUBJECT/dwi/*.src.gz 1> /dev/null 2>&1; then
+                echo "rsrc exists"
+                mv ./$subject/dwi/*.rsrc.gz ./${file}_dwi.raw.rsrc.gz
+              fi
             fi
           done
       - name: Upload Results
@@ -47,7 +51,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
         run: |
           if ls ./*.src.gz 1> /dev/null 2>&1; then
-            gh release upload "${{ inputs.dataset_id }}" ./*.src.gz
+            gh release upload "${{ inputs.dataset_id }}" ./*src.gz
           else
             echo "No .src.gz files to upload."
           fi
