@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        batch: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        batch: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
         run: |
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
           subjects=($(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | grep 'nii.gz' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u ))
-          for (( i=${{ matrix.batch }}; i< ${#subjects[@]}; i+=8 )); do
+          for (( i=${{ matrix.batch }}; i< ${#subjects[@]}; i+=16 )); do
             subject=${subjects[i]}
             file=$(echo $subject | tr '/' '_')
             echo "Processing $file"
