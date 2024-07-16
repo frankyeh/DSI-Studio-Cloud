@@ -56,10 +56,15 @@ jobs:
               echo "${file}_dwi.src.gz exists, skip"
             else
               url="https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.raw.src.gz"
+              url2="https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.raw.rsrc.gz"
               echo "download ${url} for topup eddy"
               if curl --head --silent --fail $url; then
                 wget -q $url
-                ./dsi-studio/dsi_studio --action=rec --source=${file}_dwi.raw.src.gz --cmd="[Step T2][Corrections][EDDY]" --save_src=${file}_dwi.src.gz 
+                if curl --head --silent --fail $url2; then
+                  echo "rsrc file exists, use it for topup"
+                  wget -q $url2
+                fi
+                ./dsi-studio/dsi_studio --action=rec --source=${file}_dwi.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=${file}_dwi.src.gz
                 gh release upload "${{ inputs.dataset_id }}" ${file}_dwi.src.gz 
                 rm *.src.gz
               else
