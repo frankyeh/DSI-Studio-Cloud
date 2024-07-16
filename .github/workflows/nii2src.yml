@@ -27,7 +27,7 @@ jobs:
       - name: Download NIFTI and Convert
         run: |
           curl -sL "https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2004.zip" | jar x && chmod 777 ./dsi-studio/dsi_studio
-          subjects=($(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | grep 'nii.gz' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u |))
+          subjects=($(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | grep 'nii.gz' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u ))
           total_subjects=${#subjects[@]}
           batch_size=$(( (total_subjects + 7) / 8 ))  # Round up to ensure all subjects are processed
           start=$(( ( ${{ matrix.batch }} - 1 ) * batch_size ))
