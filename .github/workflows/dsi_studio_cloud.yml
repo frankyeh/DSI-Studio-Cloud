@@ -33,29 +33,14 @@ jobs:
             gh release create ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "Processed data for dataset ${{ inputs.dataset_id }}"
           fi
           
-  download_data:
+  nii2src:
     uses: ./.github/workflows/nii2src.yml
     needs: info
     name: Call NII to SRC
     with:
-      dataset_id: ${{ inputs.dataset_id }} 
-      
-  src_quality_check1:
-    uses: ./.github/workflows/src_qc.yml
-    needs: download_data
-    name: Call NII to SRC
-    with:
-      src_list: 'raw.src.gz'
-      dataset_id: ${{ inputs.dataset_id }}  
+      dataset_id: ${{ inputs.dataset_id }}      
           
-  topup_eddy:
-    uses: ./.github/workflows/topup_eddy.yml
-    needs: download_data
-    name: Preprocess SRC
-    with:
-      dataset_id: ${{ inputs.dataset_id }}             
-          
-  src_quality_check2:
+  src_quality_check:
     uses: ./.github/workflows/src_qc.yml
     needs: topup_eddy
     name: SRC Quality Check
@@ -65,7 +50,7 @@ jobs:
 
   reconstruction:
     uses: ./.github/workflows/recon.yml
-    needs: topup_eddy
+    needs: nii2src
     name: SRC to FIB
     with:
       dataset_id: ${{ inputs.dataset_id }}
