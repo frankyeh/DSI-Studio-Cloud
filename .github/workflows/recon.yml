@@ -43,7 +43,7 @@ jobs:
               if curl --head --silent --fail $url; then
                 wget -q $url
                 ./dsi-studio/dsi_studio --action=rec --source=${file}_dwi.src.gz --output=${file}_dwi.gqi.fib.gz
-                ./dsi-studio/dsi_studio --action=rec --source=${file}_dwi.src.gz --output=${file}_dwi.qsdr.fib.gz --method=7
+                ./dsi-studio/dsi_studio --action=rec --source=${file}_dwi.src.gz --output=${file}_dwi.qsdr.fib.gz --method=7 --qsdr_reso=2
                 gh release upload "${{ inputs.dataset_id }}" *.fib.gz  
                 rm *.src.gz
                 rm *.fib.gz
