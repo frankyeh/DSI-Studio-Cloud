@@ -42,7 +42,7 @@ jobs:
           
   src_quality_check:
     uses: ./.github/workflows/src_qc.yml
-    needs: topup_eddy
+    needs: nii2src
     name: SRC Quality Check
     with:
       src_list: 'src.gz'
