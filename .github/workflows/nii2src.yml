@@ -64,7 +64,7 @@ jobs:
               mv ./$subject/dwi/*.src.gz ./${file}_dwi.raw.src.gz
               mv ./$subject/dwi/*.rsrc.gz ./${file}_dwi.raw.rsrc.gz || true
               ./dsi-studio/dsi_studio --action=rec --source=./${file}_dwi.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=./${file}_dwi.src.gz
-              gh release upload "${{ inputs.dataset_id }}" ./${file}_dwi.src.gz
+              gh release upload "${{ inputs.dataset_id }}" ./${file}_dwi.src.gz || gh release upload "${{ inputs.dataset_id }}" ./${file}_dwi.src.gz
               rm *src.gz
               rm -fr ./$subject
             fi
