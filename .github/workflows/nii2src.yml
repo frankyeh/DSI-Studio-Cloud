@@ -87,7 +87,7 @@ jobs:
               ./dsi-studio/dsi_studio --action=rec --source=./*.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=./*.src.gz
               rm *.raw.src.gz
               gh release upload "${{ inputs.dataset_id }}" ./*.src.gz || gh release upload "${{ inputs.dataset_id }}" ./*.src.gz
-              rm *src.gz
+              rm ./${file}*
               rm -fr ./$subject
             fi
           done
