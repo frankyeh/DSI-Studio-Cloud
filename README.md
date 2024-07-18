@@ -2,61 +2,9 @@
 
 <img src="https://user-images.githubusercontent.com/275569/166306915-3253113f-fe69-48bb-91a9-000cf5ae6822.png" width=500>
 
-[DSI Studio Cloud](https://github.com/frankyeh/DSI-Studio-Cloud) is a GitHub repository that uses GitHub's cloud computing resource to analyze diffusion MRI data. It can construct tractography and analyze its diffusion and shape metrics. The code can be extended to accomplish any command line functions provided in DSI Studio.
+[DSI Studio Cloud](https://github.com/frankyeh/DSI-Studio-Cloud) is a repository that uses GitHub's cloud computing resource to process OpenNeuro diffusion MRI data and share them in the release.  
 
-DSI Studio Cloud makes uses of the GitHub-hosted runner, a virtual machine hosted by GitHub, to process dMRI data. The GitHub-Action scripts in the DSI Studio Cloud get data from OpenNeuro to the GitHub runners and processe them using DSI Studio.
-
-## Advantages
-
-- **Free computation resources**: GitHub action provides 20 concurrent jobs with 2-core each. The computation power is equal to a 40-core workstation, much faster than running it on most laptops/desktops.
-- **Faster data transfer**: The raw dMRI data are usually huge and can be up to several GB per scan, but tractography and related metrics are substantially smaller at MB size. Using DSI Studio Cloud, the amount of data transfer can be dramatically reduced. 
-
-## Requirements 
-
-- dMRI data stored on [OpenNeuro](https://openneuro.org/)
-- A [GitHub](https://github.com/) account (free)
-
-## Limitations
-
-- **Not more than 256 scans data**: There is a maximum of 256 jobs per workflow run. DSI Studio will still generate SRC and FIB files for downloading, but fiber tracking cannot be executed due to the this limit.
-
-## Examples Dataset
-
-- [(OpenNeuro ds002087) Datasets with and without deliberate head movements for detection and imputation of dropout in diffusion MRI](https://openneuro.org/datasets/ds002087/versions/1.0.0)
-- [(OpenNeuro ds001378) SCA2 Diffusion Tensor Imaging](https://openneuro.org/datasets/ds001378/versions/1.0.0)
-
-## Pipeline
-
-The DSI Studio Cloud pipeline includes preprocessing (eddy correction and align ac-pc), quality check, automatic fiber tracking, region-based analysis, and connectivity matrix.
-![image](https://user-images.githubusercontent.com/275569/167920232-68b2e6d8-88db-48ab-9950-7e0f5f85d6bf.png)
-
-
-## Steps
-
-1. **Fork the repository**: Click on the `Fork` button in the upper right corner.
-
-<img src="https://user-images.githubusercontent.com/275569/157307065-a172c393-a4db-4cf3-92c8-b4482619a0e7.png" width=500>
-
-2. **Enable Actions**: Click on the `Actions` menu and confirm `I understand my workflows, go ahead and enable them`. 
-
-<img src="https://user-images.githubusercontent.com/275569/157596167-7d9ee687-2633-4d48-ba5f-c12c62b04b35.png" width=500>
-
-3. **Run Actions**: Under the same `Actions` menu, click on `Auto-Track (OpenNeuro)` on the left and click run `workflow` on the right. 
-
-*Setup Parameters*:
-
-|Parameters | Descriptions |
-|-----------|---------------|
-| OpenNeuro Accession Number | the DS number of the OpenNeuro data. (e.g. ds001378) |
-
-Click on `Run workflow` to start. 
-
-4. **Download Results**: 
-
-Once completed, the FIB files, tract files, and tract metrics can be downloaded from the Release on the right of the repository.
-
-![image](https://user-images.githubusercontent.com/275569/169601907-eb2c040f-78f4-4f38-931a-85c320b99b08.png)
-
+DSI Studio Cloud makes use of the GitHub-hosted runner, a virtual machine hosted by GitHub, to run topup/eddy and reconstruct GQI and QSDR. The GitHub-Action scripts in the DSI Studio Cloud get data from OpenNeuro to the GitHub runners and processe them using DSI Studio.
 
 ## OpenNeuro DWI Data List 
 
