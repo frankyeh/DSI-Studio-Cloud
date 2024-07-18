@@ -66,15 +66,16 @@ jobs:
               fi
               rm *.src.gz
             else
-              echo "ERROR: cannot find SRC file $url" >&2
-              exit 1
+              echo "cannot find $url" > ${{ inputs.src_list }}_qc.txt
             fi
           done
           cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
+          
       - name: Create Release
         if: env.file_exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ inputs.dataset_id }}" ${{ inputs.src_list }}_qc.txt
+          gh release edit "${{ inputs.dataset_id }}" --notes "$(cat ${{ inputs.src_list }}_qc.txt)"
         
