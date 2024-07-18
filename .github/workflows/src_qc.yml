@@ -58,9 +58,10 @@ jobs:
             url="https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.${{ inputs.src_list }}"
             if curl --head --silent --fail $url; then
               wget -q $url
+              (wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.2.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.3.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.4.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.5.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.6.src.gz) || true
               ./dsi-studio/dsi_studio --action=qc --source=.
               if [ -f "${{ inputs.src_list }}_qc.txt" ]; then
-                sed -n '2p' qc.txt >> ${{ inputs.src_list }}_qc.txt
+                sed -n '2,$p' qc.txt >> ${{ inputs.src_list }}_qc.txt
               else
                 head -n 2 qc.txt > ${{ inputs.src_list }}_qc.txt
               fi
