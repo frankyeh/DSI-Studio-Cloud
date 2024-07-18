@@ -42,7 +42,7 @@ jobs:
               echo "download ${url} for reconstruction"
               if curl --head --silent --fail $url; then
                 wget -q $url
-                wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.2.src.gz || wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.3.src.gz || wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.4.src.gz || wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.5.src.gz || wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.6.src.gz || true
+                (wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.2.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.3.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.4.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.5.src.gz && wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.6.src.gz) || true
                 ./dsi-studio/dsi_studio --action=rec --source=*.src.gz --output=*.gqi.fib.gz
                 ./dsi-studio/dsi_studio --action=rec --source=*.src.gz --output=*.qsdr.fib.gz --method=7 --qsdr_reso=2
                 gh release upload "${{ inputs.dataset_id }}" *.fib.gz || gh release upload "${{ inputs.dataset_id }}" *.fib.gz 
