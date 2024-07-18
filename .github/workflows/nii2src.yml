@@ -62,9 +62,29 @@ jobs:
               aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi*" s3://openneuro.org/${{ inputs.dataset_id }}/$subject $subject
               ./dsi-studio/dsi_studio --action=src --bids=1 --source=./$subject/dwi
               mv ./$subject/dwi/*.src.gz ./${file}_dwi.raw.src.gz
-              mv ./$subject/dwi/*.rsrc.gz ./${file}_dwi.raw.rsrc.gz || true
-              ./dsi-studio/dsi_studio --action=rec --source=./${file}_dwi.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=./${file}_dwi.src.gz
-              gh release upload "${{ inputs.dataset_id }}" ./${file}_dwi.src.gz || gh release upload "${{ inputs.dataset_id }}" ./${file}_dwi.src.gz
+
+              count=1
+              for src in ./$subject/dwi/*.src.gz; do
+                if [ $count -eq 1 ]; then
+                  mv "$src" "./${file}_dwi.raw.src.gz"
+                else
+                  mv "$src" "./${file}_dwi.raw${count}.src.gz"
+                fi
+                count=$((count + 1))
+              done
+              
+              count=1
+              for src in ./$subject/dwi/*.rsrc.gz; do
+                if [ $count -eq 1 ]; then
+                  mv "$src" "./${file}_dwi.raw.rsrc.gz"
+                else
+                  mv "$src" "./${file}_dwi.raw${count}.rsrc.gz"
+                fi
+                count=$((count + 1))
+              done
+              
+              ./dsi-studio/dsi_studio --action=rec --source=./*_dwi.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=./*_dwi.src.gz
+              gh release upload "${{ inputs.dataset_id }}" ./*_dwi.src.gz || gh release upload "${{ inputs.dataset_id }}" ./*_dwi.src.gz
               rm *src.gz
               rm -fr ./$subject
             fi
