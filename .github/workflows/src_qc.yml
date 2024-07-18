@@ -78,5 +78,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ inputs.dataset_id }}" ${{ inputs.src_list }}_qc.txt
-          gh release edit "${{ inputs.dataset_id }}" --notes "$(cat ${{ inputs.src_list }}_qc.txt)"
         
