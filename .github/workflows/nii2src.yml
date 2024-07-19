@@ -7,6 +7,9 @@ on:
         description: 'OpenNeuro Accession Number'
         default: ds001378
         required: true
+      rev_pe:
+        description: 'Reverse Phase Encoding File'
+        default: ''
   workflow_call:
     inputs:
       dataset_id:
@@ -83,6 +86,13 @@ jobs:
               done
               
               ls ./*.raw.src.gz
+
+              if [ "${{ inputs.rev_pe }}" != "" ]; then
+                echo "get the additional file for topup"
+                aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "${{ inputs.rev_pe }}" s3://openneuro.org/${{ inputs.dataset_id }}/$subject $subject
+                find ./$subject -type f -exec mv {} . \;
+                ls *.*
+              fi
               
               ./dsi-studio/dsi_studio --action=rec --source=./*.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=./*.src.gz
               rm *.raw.src.gz
