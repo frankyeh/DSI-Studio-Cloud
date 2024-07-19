@@ -88,7 +88,7 @@ jobs:
               
               if [ "${{ inputs.rev_pe }}" != "" ]; then
                 echo "get the additional file for topup"
-                aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "${subject}*${{ inputs.rev_pe }}" s3://openneuro.org/${{ inputs.dataset_id }}/ ${subject}
+                aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "*${subject}${{ inputs.rev_pe }}" s3://openneuro.org/${{ inputs.dataset_id }}/ ${subject}
                 find ./${subject} -type f -exec mv {} . \;
                 rm -fr ./${subject}
               fi
