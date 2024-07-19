@@ -91,10 +91,13 @@ jobs:
                 aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "*${subject}${{ inputs.rev_pe }}" s3://openneuro.org/${{ inputs.dataset_id }}/ ${subject}
                 find ./${subject} -type f -exec mv {} . \;
                 rm -fr ./${subject}
+                ls *.*
+                mv *.nii.gz rev_pe.nii.gz
+                ./dsi-studio/dsi_studio --action=rec --source=./*.raw.src.gz --rev_pe=rev_pe.nii.gz --save_src=./*.src.gz
+              else
+                ./dsi-studio/dsi_studio --action=rec --source=./*.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=./*.src.gz
               fi
 
-              ls *.*
-              ./dsi-studio/dsi_studio --action=rec --source=./*.raw.src.gz --cmd="[Step T2][Corrections][TOPUP EDDY]" --save_src=./*.src.gz
               rm *.raw.src.gz
               gh release upload "${{ inputs.dataset_id }}" ./*.src.gz || gh release upload "${{ inputs.dataset_id }}" ./*.src.gz
               rm *.*
