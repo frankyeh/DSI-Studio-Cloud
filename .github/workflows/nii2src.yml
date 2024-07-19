@@ -56,17 +56,17 @@ jobs:
           subjects=($(aws s3 ls --no-sign-request --region eu-west-1 s3://openneuro.org/${{ inputs.dataset_id }} --recursive | grep '/dwi/' | grep 'nii.gz' | awk '{print $NF}' | awk -F'/dwi/' '{print $1}' | awk -F'/sub-' '/sub-/ {print "sub-" $2}' | sort -u ))
           for (( i=${{ matrix.batch }}; i< ${#subjects[@]}; i+=16 )); do
             subject=${subjects[i]}
-            file=$(echo $subject | tr '/' '_')
+            file=$(echo ${subject} | tr '/' '_')
             echo "Processing $file"
             if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.src.gz; then
               echo "$file exists."
             else
-              echo "Downloading and processing $subject"
-              aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi*" s3://openneuro.org/${{ inputs.dataset_id }}/$subject $subject
-              ./dsi-studio/dsi_studio --action=src --bids=1 --source=./$subject/dwi
+              echo "Downloading and processing ${subject}"
+              aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "*dwi*" s3://openneuro.org/${{ inputs.dataset_id }}/${subject} ${subject}
+              ./dsi-studio/dsi_studio --action=src --bids=1 --source=./${subject}/dwi
               
               count=1
-              for src in ./$subject/dwi/*.src.gz; do
+              for src in ./${subject}/dwi/*.src.gz; do
                 if [ $count -eq 1 ]; then
                   mv "$src" "./${file}_dwi.raw.src.gz"
                 else
@@ -84,13 +84,13 @@ jobs:
                 fi
                 count=$((count + 1))
               done
-              rm -fr ./$subject
+              rm -fr ./${subject}
               
               if [ "${{ inputs.rev_pe }}" != "" ]; then
                 echo "get the additional file for topup"
-                aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "${{ inputs.rev_pe }}" s3://openneuro.org/${{ inputs.dataset_id }}/$subject $subject
-                find ./$subject -type f -exec mv {} . \;
-                rm -fr ./$subject
+                aws s3 sync --quiet --no-sign-request --region eu-west-1 --exclude "*" --include "${subject}*${{ inputs.rev_pe }}" s3://openneuro.org/${{ inputs.dataset_id }}/ ${subject}
+                find ./${subject} -type f -exec mv {} . \;
+                rm -fr ./${subject}
               fi
 
               ls *.*
