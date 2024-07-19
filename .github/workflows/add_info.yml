@@ -1,4 +1,4 @@
-name: Step 0 Access OpenNeuro
+name: STEP 0 Access OpenNeuro
 on: 
   workflow_dispatch:
     inputs:
