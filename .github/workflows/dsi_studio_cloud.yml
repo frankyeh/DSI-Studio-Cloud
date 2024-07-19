@@ -12,6 +12,8 @@ jobs:
     name: Download OpenNeuro
     runs-on: ubuntu-20.04
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
       - name: OpenNeuro
         id: data
         run: |
@@ -25,8 +27,6 @@ jobs:
           echo "**${{ inputs.dataset_id }}**" >> $GITHUB_STEP_SUMMARY         
           cat README >> $GITHUB_STEP_SUMMARY         
           
-      - name: Checkout repository
-        uses: actions/checkout@v3
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
