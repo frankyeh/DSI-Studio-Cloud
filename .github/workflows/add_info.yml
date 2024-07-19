@@ -1,4 +1,4 @@
-name: Add Description
+name: Step 0 Access OpenNeuro
 on: 
   workflow_dispatch:
     inputs:
@@ -6,18 +6,40 @@ on:
         description: 'OpenNeuro Accession Number'
         default: ds001378
         required: true
-      
+  workflow_call:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
+        type: string
 jobs:    
   info:
     name: Download OpenNeuro
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.7
       - name: OpenNeuro
+        id: data
+        run: |
+          # Process dataset_description.json
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ inputs.dataset_id }} .
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "README" s3://openneuro.org/${{ inputs.dataset_id }} .
+          echo "https://openneuro.org/datasets/${{ inputs.dataset_id }}" >> README
+          content=$(cat dataset_description.json)
+          name=$(echo "$content" | jq -r '.Name')
+          echo "dataset_name=$name" >> $GITHUB_OUTPUT
+          echo "# $name" >> $GITHUB_STEP_SUMMARY         
+          echo "**${{ inputs.dataset_id }}**" >> $GITHUB_STEP_SUMMARY         
+          cat README >> $GITHUB_STEP_SUMMARY         
+          
+      - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "README" s3://openneuro.org/${{ inputs.dataset_id }} .
-          gh release edit ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "$(cat README)"
-          
+          if gh release view ${{ inputs.dataset_id }} &> /dev/null; then
+            gh release edit ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "$(cat README)"
+          else
+            gh release create ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "$(cat README)"
+          fi
