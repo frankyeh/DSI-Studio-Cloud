@@ -21,7 +21,10 @@ jobs:
           content=$(cat dataset_description.json)
           name=$(echo "$content" | jq -r '.Name')
           echo "dataset_name=$name" >> $GITHUB_OUTPUT
-          echo "OpenNeuro ${{ inputs.dataset_id }} $name" >> $GITHUB_STEP_SUMMARY          
+          echo "# $name" >> $GITHUB_STEP_SUMMARY         
+          echo "**${{ inputs.dataset_id }}**" >> $GITHUB_STEP_SUMMARY         
+          cat README >> $GITHUB_STEP_SUMMARY         
+          
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Create Release
