@@ -1,0 +1,23 @@
+name: Add Description
+on: 
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: 'OpenNeuro Accession Number'
+        default: ds001378
+        required: true
+      
+jobs:    
+  info:
+    name: Download OpenNeuro
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: OpenNeuro
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "README" s3://openneuro.org/${{ inputs.dataset_id }} .
+          gh release edit ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "$(cat README)"
+          
