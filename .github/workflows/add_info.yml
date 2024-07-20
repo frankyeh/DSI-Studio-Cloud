@@ -26,7 +26,7 @@ jobs:
           # Process dataset_description.json
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ inputs.dataset_id }} .
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "README" s3://openneuro.org/${{ inputs.dataset_id }} .
-          echo "\nhttps://openneuro.org/datasets/${{ inputs.dataset_id }}" >> README
+          echo -e "\nhttps://openneuro.org/datasets/${{ inputs.dataset_id }}" >> README
           content=$(cat dataset_description.json)
           name=$(echo "$content" | jq -r '.Name')
           echo "dataset_name=$name" >> $GITHUB_OUTPUT
