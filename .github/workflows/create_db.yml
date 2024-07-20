@@ -69,4 +69,4 @@ jobs:
           else
             ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --output=${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz
           fi          
-          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz *.R2.txt
+          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz
