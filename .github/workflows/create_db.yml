@@ -59,6 +59,8 @@ jobs:
             rm *.fib.gz
           done
       - name: Database Construction
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: env.file_exists == 'false'
         run: |        
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ inputs.dataset_id }} .
@@ -67,9 +69,4 @@ jobs:
           else
             ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --output=${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz
           fi          
-      - name: Upload Release
-        if: env.file_exists == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz
+          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz *.R2.txt
