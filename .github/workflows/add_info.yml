@@ -26,6 +26,7 @@ jobs:
           # Process dataset_description.json
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "dataset_description.json" s3://openneuro.org/${{ inputs.dataset_id }} .
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "README" s3://openneuro.org/${{ inputs.dataset_id }} .
+          aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ inputs.dataset_id }} .
           echo -e "\nhttps://openneuro.org/datasets/${{ inputs.dataset_id }}" >> README
           content=$(cat dataset_description.json)
           name=$(echo "$content" | jq -r '.Name')
@@ -43,3 +44,19 @@ jobs:
           else
             gh release create ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "$(cat README)"
           fi
+          
+          url="https://github.com/frankyeh/data-openneuro/releases/download/${inputs.dataset_id}/src.gz_qc.txt"
+          if curl --output /dev/null --silent --head --fail "$url"; then
+            echo "File exists, downloading..."
+            curl -L -o src.gz_qc.txt "$url"
+            mv src.gz_qc.txt qc.tsv
+            gh release delete-asset ${{ inputs.dataset_id }} src.gz_qc.txt
+            gh release upload ${{ inputs.dataset_id }} qc.tsv
+          fi
+          
+          if [ -f "participants.tsv" ]; then
+            gh release upload ${{ inputs.dataset_id }} participants.tsv
+          fi
+
+          
+          
