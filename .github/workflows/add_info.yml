@@ -45,7 +45,7 @@ jobs:
             gh release create ${{ inputs.dataset_id }} --title "${{ steps.data.outputs.dataset_name }}" --notes "$(cat README)"
           fi
           
-          url="https://github.com/frankyeh/data-openneuro/releases/download/${inputs.dataset_id}/src.gz_qc.txt"
+          url="https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/src.gz_qc.txt"
           if curl --output /dev/null --silent --head --fail "$url"; then
             echo "File exists, downloading..."
             curl -L -o src.gz_qc.txt "$url"
