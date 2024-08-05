@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Check If Done
         run: |
-          wget -q https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz || true
+          wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz || true
           if [ ! -f "${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz" ]; then
             echo "file_exists=false" >> $GITHUB_ENV
           else
@@ -54,7 +54,7 @@ jobs:
           files=($(echo "${{ steps.data.outputs.subjects }}" | tr '/' '_'))
           for file in "${files[@]}"; do
             echo "Export metrics from $file"
-            wget -q "https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.qsdr.fib.gz"
+            wget -q "https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${file}_dwi.qsdr.fib.gz"
             ./dsi-studio/dsi_studio --action=exp --source=${file}_dwi.qsdr.fib.gz --export=${{inputs.metrics}}
             rm *.fib.gz
           done
