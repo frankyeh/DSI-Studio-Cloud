@@ -1,4 +1,4 @@
-name: DSI Studio Cloud
+name: DSI Studio Data Hub
 on: 
   workflow_dispatch:
     inputs:
