@@ -58,7 +58,7 @@ jobs:
             subject=${subjects[i]}
             file=$(echo ${subject} | tr '/' '_')
             echo "Processing $file"
-            if curl --head --silent --fail https://github.com/frankyeh/DSI-Studio-Cloud/releases/download/${{ inputs.dataset_id }}/${file}_dwi.src.gz; then
+            if curl --head --silent --fail https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${file}_dwi.src.gz; then
               echo "$file exists."
             else
               echo "Downloading and processing ${subject}"
