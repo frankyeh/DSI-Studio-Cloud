@@ -51,11 +51,15 @@ jobs:
             curl -L -o src.gz_qc.txt "$url"
             mv src.gz_qc.txt qc.tsv
             gh release delete-asset ${{ inputs.dataset_id }} src.gz_qc.txt
-            gh release upload ${{ inputs.dataset_id }} qc.tsv
+            gh release upload ${{ inputs.dataset_id }} qc.tsv | true
           fi
           
           if [ -f "participants.tsv" ]; then
-            gh release upload ${{ inputs.dataset_id }} participants.tsv
+            if curl --output /dev/null --silent --head --fail "https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/participants.tsv"; then
+              echo "has participants info, skipping"
+            else
+              gh release upload ${{ inputs.dataset_id }} participants.tsv
+            fi 
           fi
 
           
