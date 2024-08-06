@@ -65,7 +65,7 @@ jobs:
         run: |        
           aws s3 sync --no-sign-request --region eu-west-1 --exclude "*" --include "participants.tsv" s3://openneuro.org/${{ inputs.dataset_id }} .
           if [ -f participants.tsv ]; then
-            ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --demo=participants.tsv --output=${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz
+            ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --demo=participants.tsv --output=${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz | ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --output=${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz 
           else
             ./dsi-studio/dsi_studio --action=atl --source=*.nii.gz --cmd=db --output=${{ inputs.dataset_id }}.${{inputs.metrics}}.db.fib.gz
           fi          
