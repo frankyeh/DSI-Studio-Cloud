@@ -32,10 +32,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Check Files
         run: |
-          if curl --head --silent --fail https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${{ inputs.src_list }}_qc.txt; then
+          if curl --head --silent --fail https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/qc.tsv; then
            ${{ matrix.files }} echo "file_exists=true" >> $GITHUB_ENV
-            wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${{ inputs.src_list }}_qc.txt
-            cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
+            wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/qc.tsv
+            cat qc.tsv >> $GITHUB_STEP_SUMMARY
           else
             echo "file_exists=false" >> $GITHUB_ENV
           fi
@@ -61,21 +61,22 @@ jobs:
               (wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${file}_dwi.2.src.gz && wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${file}_dwi.3.src.gz && wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${file}_dwi.4.src.gz && wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${file}_dwi.5.src.gz && wget -q https://github.com/frankyeh/data-openneuro/releases/download/${{ inputs.dataset_id }}/${file}_dwi.6.src.gz) || true
               ./dsi-studio/dsi_studio --action=qc --source=.
               if [ -f "${{ inputs.src_list }}_qc.txt" ]; then
-                sed -n '2,$p' qc.txt >> ${{ inputs.src_list }}_qc.txt
+                sed -n '2,$p' qc.tsv >> ${{ inputs.src_list }}_qc.tsv
               else
-                head -n 2 qc.txt > ${{ inputs.src_list }}_qc.txt
+                head -n 2 qc.tsv > ${{ inputs.src_list }}_qc.tsv
               fi
               rm *.src.gz
             else
-              echo "cannot find $url" > ${{ inputs.src_list }}_qc.txt
+              echo "cannot find $url" > ${{ inputs.src_list }}_qc.tsv
             fi
           done
-          cat ${{ inputs.src_list }}_qc.txt >> $GITHUB_STEP_SUMMARY
+          mv ${{ inputs.src_list }}_qc.tsv qc.tsv
+          cat qc.tsv >> $GITHUB_STEP_SUMMARY
           
       - name: Create Release
         if: env.file_exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ inputs.dataset_id }}" ${{ inputs.src_list }}_qc.txt
+          gh release upload "${{ inputs.dataset_id }}" qc.tsv
         
